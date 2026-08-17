@@ -5,6 +5,8 @@
 #include "GUI/LookAndFeel.h"
 #include "GUI/ModuleRack.h"
 #include "GUI/BackgroundScene.h"
+#include "GUI/PerformanceStrip.h"
+#include "GUI/PresetBar.h"
 
 // Phase 4: the real "fruity aero" GUI -- candy-knob ModuleRack (every
 // module from the reference minus the dropped sequencer/drum-machine/
@@ -25,7 +27,9 @@ private:
     GexexSynthAudioProcessor& processorRef;
     gexex::GexexLookAndFeel lookAndFeel;
     gexex::BackgroundScene backgroundScene;
+    gexex::PresetBar presetBar;
     gexex::ModuleRack moduleRack;
+    gexex::PerformanceStrip performanceStrip;
     juce::MidiKeyboardComponent keyboard;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GexexSynthAudioProcessorEditor)

@@ -69,6 +69,14 @@ public:
     const gexex::ScopeDataSource<>& getOscScope(int oscIndex) const noexcept { return oscScopes[(size_t) oscIndex]; }
     const gexex::ScopeDataSource<>& getMasterScope() const noexcept { return masterScope; }
 
+    // Silences every voice immediately (a true hard-stop, not a fast
+    // release -- see the build plan's §5) plus flushes the delay/reverb
+    // tails. SynthEngine isn't safe to touch from the GUI thread directly
+    // (unlike APVTS parameters, its internal voice/arp state has no
+    // atomic protection), so the button handler just sets a flag here and
+    // processBlock actions it on the audio thread.
+    void requestPanic() noexcept { panicRequested.store(true, std::memory_order_relaxed); }
+
 private:
     // Reads the current APVTS values (+ this block's LFO reading) and
     // pushes fully-resolved values into synthEngine/effectsChain -- called
@@ -89,6 +97,7 @@ private:
 
     std::array<gexex::ScopeDataSource<>, 3> oscScopes;
     gexex::ScopeDataSource<> masterScope;
+    std::atomic<bool> panicRequested { false };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GexexSynthAudioProcessor)
 };

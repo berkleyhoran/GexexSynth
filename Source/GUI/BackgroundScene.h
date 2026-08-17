@@ -6,10 +6,14 @@
 
 namespace gexex
 {
-    // The gexex "aero" scene (sky gradient, two parallax cloud layers,
-    // rising bubbles, a grass foreground strip, mirrored daisies) ported
-    // from synth.html's CSS background into a JUCE Component. Plain
-    // Timer-driven `Graphics::drawImage` compositing rather than OpenGL --
+    // The gexex "aero" sky: a gradient plus two parallax cloud layers and
+    // rising bubbles, ported from synth.html's CSS background into a JUCE
+    // Component. The grass foreground + daisies live in PerformanceStrip
+    // instead (docked above the keyboard, always visible) rather than
+    // here, since as part of this full-bounds scrolling backdrop they'd
+    // sit behind the keyboard/off the bottom of the visible rack area.
+    // Plain Timer-driven `Graphics::drawImage` compositing rather than
+    // OpenGL --
     // see the build plan's §6.3: this is a handful of static PNG layers
     // needing simple 2D compositing/scroll/opacity, not the procedural
     // GPU-shader workload Kaleidosonic's OpenGL usage exists for, so
@@ -45,7 +49,7 @@ namespace gexex
 
         juce::AudioProcessorValueTreeState& apvts;
 
-        juce::Image cloudsA, cloudsB, bubbleImage, daisyImage, grassImage;
+        juce::Image cloudsA, cloudsB, bubbleImage;
         std::vector<Bubble> bubbles;
         juce::Random random;
 

@@ -206,6 +206,12 @@ void GexexSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
 
+    if (panicRequested.exchange(false, std::memory_order_relaxed))
+    {
+        synthEngine.handleMidiEvent(juce::MidiMessage::allNotesOff(1));
+        effectsChain.reset(); // also flushes delay/reverb tails for true instant silence
+    }
+
     updateEngineParameters(buffer.getNumSamples());
     keyboardState.processNextMidiBuffer(midi, 0, buffer.getNumSamples(), true);
 

@@ -10,13 +10,18 @@ namespace gexex
         : apvts(apvtsToUse)
     {
         const ScopeDataSource<>* oscScopeSources[3] = { &osc1Scope, &osc2Scope, &osc3Scope };
+
         viewport.setViewedComponent(&content, false);
         viewport.setScrollBarsShown(true, false);
         addAndMakeVisible(viewport);
 
         int category = 0;
 
-        // --- Oscillators 1-3 (each its own hue), plus FM amount into osc1 ---
+        // ============================================================
+        // Section: Sound Source -- the 3-osc/FM engine and its filter.
+        // ============================================================
+        addSection("Sound Source", GexexLookAndFeel::categoryColour(category));
+
         for (int oscNumber = 1; oscNumber <= 3; ++oscNumber)
         {
             auto& card = addCard("Osc " + juce::String(oscNumber), category++);
@@ -36,7 +41,6 @@ namespace gexex
             card.addCustomComponent(*scope, 44);
         }
 
-        // --- Filter ---
         {
             auto& card = addCard("Filter", category++);
             card.addCombo(apvts, ParamIDs::filterType, "Type");
@@ -45,7 +49,11 @@ namespace gexex
             card.addKnob(apvts, ParamIDs::filterVelSens, "Vel>Cut");
         }
 
-        // --- LFO ---
+        // ============================================================
+        // Section: Modulation -- LFO, envelope, voice/arp.
+        // ============================================================
+        addSection("Modulation", GexexLookAndFeel::categoryColour(category));
+
         {
             auto& card = addCard("LFO", category);
             card.addCombo(apvts, ParamIDs::lfoWaveform, "Wave");
@@ -59,7 +67,6 @@ namespace gexex
             card.addKnob(apvts, ParamIDs::lfoDepth, "Depth");
         }
 
-        // --- Envelope: the custom draggable-node editor instead of 4 sliders ---
         {
             auto& card = addCard("Envelope", category);
             envelopeEditor = std::make_unique<EnvelopeEditor>(apvts, ParamIDs::envAttack, ParamIDs::envDecay,
@@ -69,7 +76,6 @@ namespace gexex
             card.addCustomComponent(*envelopeEditor, 130);
         }
 
-        // --- Voice / Arp ---
         {
             auto& card = addCard("Voice / Arp", category++);
             card.addCombo(apvts, ParamIDs::voiceMode, "Voice Mode");
@@ -82,15 +88,20 @@ namespace gexex
             card.addKnob(apvts, ParamIDs::arpGate, "Gate");
         }
 
-        // --- Effects rack, in signal-flow order ---
+        // ============================================================
+        // Section: Effects -- signal-flow order (Drive -> Bitcrush ->
+        // Delay/Reverb sends -> Chorus -> Phaser/Flanger -> Saturator).
+        // ============================================================
+        addSection("Effects", GexexLookAndFeel::categoryColour(category));
+
+        {
+            auto& card = addCard("Drive", category++);
+            card.addKnob(apvts, ParamIDs::driveAmount, "Amount");
+        }
         {
             auto& card = addCard("Bitcrush", category++);
             card.addKnob(apvts, ParamIDs::crushBits, "Depth");
             card.addKnob(apvts, ParamIDs::crushDownsample, "Downsmp");
-        }
-        {
-            auto& card = addCard("Drive", category++);
-            card.addKnob(apvts, ParamIDs::driveAmount, "Amount");
         }
         {
             auto& card = addCard("Delay", category);
@@ -132,6 +143,11 @@ namespace gexex
             card.addKnob(apvts, ParamIDs::saturatorAmount, "Amount");
             card.addKnob(apvts, ParamIDs::saturatorCeiling, "Ceiling");
         }
+
+        // ============================================================
+        // Section: Master.
+        // ============================================================
+        addSection("Master", GexexLookAndFeel::categoryColour(category));
         {
             auto& card = addCard("Master", category++);
             auto* scope = scopes.add(new Scope(GexexLookAndFeel::categoryColour(category)));
@@ -150,7 +166,15 @@ namespace gexex
     {
         auto* card = cards.add(new ModuleCard(title, GexexLookAndFeel::categoryColour(categoryIndex)));
         content.addAndMakeVisible(card);
+        flowItems.push_back({ card, false });
         return *card;
+    }
+
+    void ModuleRack::addSection(const juce::String& title, juce::Colour accent)
+    {
+        auto* header = sectionHeaders.add(new SectionHeader(title, accent));
+        content.addAndMakeVisible(header);
+        flowItems.push_back({ header, true });
     }
 
     void ModuleRack::timerCallback()
@@ -175,24 +199,34 @@ namespace gexex
 
     void ModuleRack::layOutCards()
     {
-        // Reserve room for the vertical scrollbar this content will almost
-        // always need -- otherwise the last column's cards get laid out
-        // assuming the full window width is available, then the scrollbar
-        // appears (because the content is taller than the viewport) and
-        // clips straight through them. Generous on purpose: a slightly
-        // under-filled last column reads fine; an overflowing one doesn't.
         const int scrollbarAllowance = juce::jmax(24, viewport.getScrollBarThickness() + 8);
         const int rawWidth = getWidth() > 0 ? getWidth() : 900;
         const int viewportWidth = juce::jmax(cardWidth, rawWidth - scrollbarAllowance);
         const int perRow = juce::jmax(1, (viewportWidth - cardGap) / (cardWidth + cardGap));
+        const int rowSpanWidth = perRow * (cardWidth + cardGap) + cardGap;
 
         int x = cardGap;
         int y = cardGap;
         int col = 0;
         int rowMaxHeight = 0;
 
-        for (auto* card : cards)
+        for (auto& item : flowItems)
         {
+            if (item.isSectionHeader)
+            {
+                if (col != 0)
+                {
+                    y += rowMaxHeight + cardGap;
+                    col = 0;
+                    x = cardGap;
+                    rowMaxHeight = 0;
+                }
+                item.component->setBounds(cardGap, y, rowSpanWidth - cardGap * 2, sectionHeaderHeight);
+                y += sectionHeaderHeight + cardGap;
+                continue;
+            }
+
+            auto* card = static_cast<ModuleCard*>(item.component);
             const int h = card->getPreferredHeight(cardWidth);
             card->setBounds(x, y, cardWidth, h);
             rowMaxHeight = juce::jmax(rowMaxHeight, h);
@@ -212,7 +246,7 @@ namespace gexex
         }
 
         const int contentHeight = y + rowMaxHeight + cardGap;
-        content.setSize(perRow * (cardWidth + cardGap) + cardGap, contentHeight);
+        content.setSize(rowSpanWidth, contentHeight);
     }
 
     void ModuleRack::resized()

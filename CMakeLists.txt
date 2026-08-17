@@ -80,7 +80,10 @@ target_sources(GexexSynth PRIVATE
     Source/DSP/Effects/EffectsChain.cpp
     Source/GUI/LookAndFeel.cpp
     Source/GUI/ModuleRack.cpp
-    Source/GUI/BackgroundScene.cpp)
+    Source/GUI/BackgroundScene.cpp
+    Source/GUI/PerformanceStrip.cpp
+    Source/Presets/PresetManager.cpp
+    Source/GUI/PresetBar.cpp)
 
 target_compile_definitions(GexexSynth PUBLIC
     JUCE_WEB_BROWSER=0

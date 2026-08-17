@@ -9,8 +9,6 @@ namespace gexex
         cloudsA = juce::ImageFileFormat::loadFrom(BinaryData::clouds_a_png, (size_t) BinaryData::clouds_a_pngSize);
         cloudsB = juce::ImageFileFormat::loadFrom(BinaryData::clouds_b_png, (size_t) BinaryData::clouds_b_pngSize);
         bubbleImage = juce::ImageFileFormat::loadFrom(BinaryData::bubble_png, (size_t) BinaryData::bubble_pngSize);
-        daisyImage = juce::ImageFileFormat::loadFrom(BinaryData::daisy_png, (size_t) BinaryData::daisy_pngSize);
-        grassImage = juce::ImageFileFormat::loadFrom(BinaryData::grass_png, (size_t) BinaryData::grass_pngSize);
 
         // A fixed pool of bubbles, each with its own randomized column/
         // size/cycle-length/phase (mirrors synth.html's per-bubble
@@ -85,35 +83,6 @@ namespace gexex
             }
         }
         g.setOpacity(1.0f);
-
-        // Grass foreground strip along the bottom.
-        const int grassHeight = juce::jmin(170, bounds.getHeight() / 5);
-        drawTiledLayer(g, grassImage, bounds.withTop(bounds.getBottom() - grassHeight), 0.0f, 1.0f);
-
-        // Mirrored daisies anchored bottom-left/bottom-right, static
-        // (reuses the bubble sprite at a larger scale, per synth.html's
-        // asset choice, mirrored via a negative-width draw for the right
-        // one instead of a duplicate flipped image).
-        if (daisyImage.isValid())
-        {
-            const int daisyW = juce::jmin(130, bounds.getWidth() / 8);
-            const int daisyH = (int) (daisyW * (float) daisyImage.getHeight() / (float) daisyImage.getWidth());
-            const int daisyY = bounds.getBottom() - grassHeight - daisyH + grassHeight / 3;
-
-            g.drawImage(daisyImage, 4, daisyY, daisyW, daisyH, 0, 0, daisyImage.getWidth(), daisyImage.getHeight());
-
-            // Mirrored right-side daisy: Graphics::drawImage has no flip
-            // flag, so this scales-then-flips-then-positions via an
-            // explicit transform instead of keeping a second flipped
-            // image copy around.
-            const float scaleX = (float) daisyW / (float) daisyImage.getWidth();
-            const float scaleY = (float) daisyH / (float) daisyImage.getHeight();
-            const float targetRight = (float) (bounds.getRight() - 4);
-            auto flipTransform = juce::AffineTransform::scale(scaleX, scaleY)
-                                      .followedBy(juce::AffineTransform::scale(-1.0f, 1.0f))
-                                      .followedBy(juce::AffineTransform::translation(targetRight, (float) daisyY));
-            g.drawImageTransformed(daisyImage, flipTransform);
-        }
     }
 
     void BackgroundScene::timerCallback()
