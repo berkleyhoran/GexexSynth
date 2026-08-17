@@ -1,5 +1,26 @@
 #include "LookAndFeel.h"
 
+namespace
+{
+    // Reimplements LookAndFeel_V2's private SliderLabelComp (the Label
+    // JUCE's stock createSliderTextBox() returns) with one difference:
+    // its mouseWheelMove is a no-op forwarding override instead of a
+    // fully empty one, so a wheel event over a knob's text box reaches
+    // the enclosing Viewport instead of vanishing. See LookAndFeel.h's
+    // comment on createSliderTextBox for why this exists.
+    class ScrollThroughSliderLabel : public juce::Label
+    {
+    public:
+        ScrollThroughSliderLabel() : Label({}, {}) {}
+
+        void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel) override
+        {
+            if (auto* parent = getParentComponent())
+                parent->mouseWheelMove(e.getEventRelativeTo(parent), wheel);
+        }
+    };
+} // namespace
+
 namespace gexex
 {
     const juce::Identifier GexexLookAndFeel::accentColourPropertyID { "accentColour" };
@@ -57,6 +78,25 @@ namespace gexex
         setColour(juce::TextEditor::highlightColourId, juce::Colour(0xFFB8E2FA));
         setColour(juce::TextEditor::highlightedTextColourId, inkColour());
         setColour(juce::CaretComponent::caretColourId, inkColour());
+    }
+
+    juce::Label* GexexLookAndFeel::createSliderTextBox(juce::Slider& slider)
+    {
+        // Mirrors LookAndFeel_V2::createSliderTextBox() exactly (colours,
+        // justification, keyboard type) but for a ScrollThroughSliderLabel
+        // instead of its private SliderLabelComp -- see this header's
+        // comment and the anonymous namespace above for why.
+        auto* l = new ScrollThroughSliderLabel();
+        l->setJustificationType(juce::Justification::centred);
+        l->setKeyboardType(juce::TextInputTarget::decimalKeyboard);
+        l->setColour(juce::Label::textColourId, slider.findColour(juce::Slider::textBoxTextColourId));
+        l->setColour(juce::Label::backgroundColourId, slider.findColour(juce::Slider::textBoxBackgroundColourId));
+        l->setColour(juce::Label::outlineColourId, slider.findColour(juce::Slider::textBoxOutlineColourId));
+        l->setColour(juce::TextEditor::textColourId, slider.findColour(juce::Slider::textBoxTextColourId));
+        l->setColour(juce::TextEditor::backgroundColourId, slider.findColour(juce::Slider::textBoxBackgroundColourId));
+        l->setColour(juce::TextEditor::outlineColourId, slider.findColour(juce::Slider::textBoxOutlineColourId));
+        l->setColour(juce::TextEditor::highlightColourId, slider.findColour(juce::Slider::textBoxHighlightColourId));
+        return l;
     }
 
     juce::Colour GexexLookAndFeel::categoryColour(int categoryIndex) noexcept

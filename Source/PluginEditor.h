@@ -33,5 +33,10 @@ private:
     gexex::GexexKeyboard keyboard;
     gexex::PerformanceStrip performanceStrip; // added/painted last -- grass sits in front of everything, incl. the keyboard
 
+    // Needed for any Component::setTooltip() text to actually show up as
+    // a popup (e.g. SignalChainEditor's "drag rows to reorder" hint) --
+    // without one JUCE has nothing polling hover time/showing the bubble.
+    juce::TooltipWindow tooltipWindow { this };
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GexexSynthAudioProcessorEditor)
 };

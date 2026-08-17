@@ -18,6 +18,17 @@ namespace gexex
         void drawRotarySlider(juce::Graphics&, int x, int y, int width, int height, float sliderPosProportional,
                                float rotaryStartAngle, float rotaryEndAngle, juce::Slider&) override;
 
+        // The stock LookAndFeel_V2 text-box widget (Label) hardcodes an
+        // *empty* mouseWheelMove override that swallows the event outright
+        // (confirmed by reading JUCE's own source), regardless of the
+        // owning Slider's own setScrollWheelEnabled() flag -- the event
+        // never reaches the Slider at all. With ~70 knobs' numeric
+        // readouts packed into the scrolling rack, that meant page
+        // scrolling still died under every readout even after disabling
+        // wheel-on-the-dial. This override swaps in an equivalent Label
+        // that forwards unhandled wheel events to its parent instead.
+        juce::Label* createSliderTextBox(juce::Slider&) override;
+
         juce::Font getLabelFont(juce::Label&) override;
         juce::Font getComboBoxFont(juce::ComboBox&) override;
 

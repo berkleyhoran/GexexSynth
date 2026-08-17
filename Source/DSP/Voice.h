@@ -120,7 +120,32 @@ namespace gexex
         void setFilter2Resonance(float resonance) noexcept { filter2.setResonance(resonance); }
         void setFilter2Type(juce::dsp::StateVariableTPTFilterType type) noexcept { filter2.setType(type); }
 
-        void setEnvelopeParameters(const juce::ADSR::Parameters& params) noexcept { envelope.setParameters(params); }
+        // juce::ADSR's own class docs explicitly warn against calling
+        // setParameters() during playback ("if you change the parameters
+        // before the release stage has completed then you must call
+        // reset()..."), and its setParameters()->recalculateRates() isn't
+        // actually a no-op even when the values are unchanged: it
+        // recomputes releaseRate from parameters.sustain (the target
+        // level), not the envelope's current value, and can force an
+        // early goToNextState()/reset() under some conditions. PluginProcessor
+        // pushes envelope parameters unconditionally every block (same as
+        // cutoff/resonance/etc.), which for this one parameter meant every
+        // release was getting silently re-triggered/truncated roughly
+        // every 10ms instead of running its natural ramp -- same class of
+        // bug setGlideTimeSeconds() below already guards against for
+        // glide, just less obviously so here since ADSR doesn't expose an
+        // equivalent "did anything actually change" check itself.
+        void setEnvelopeParameters(const juce::ADSR::Parameters& params) noexcept
+        {
+            const auto& current = envelope.getParameters();
+            if (! juce::approximatelyEqual(current.attack, params.attack)
+                || ! juce::approximatelyEqual(current.decay, params.decay)
+                || ! juce::approximatelyEqual(current.sustain, params.sustain)
+                || ! juce::approximatelyEqual(current.release, params.release))
+            {
+                envelope.setParameters(params);
+            }
+        }
 
         // The LFO's "Pitch (all osc)" target is the one modulation
         // destination that has to reach the audio-rate note calculation

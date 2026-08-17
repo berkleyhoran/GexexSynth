@@ -1,4 +1,5 @@
 #include "PerformanceStrip.h"
+#include "LookAndFeel.h"
 #include <BinaryData.h>
 
 namespace gexex
@@ -68,15 +69,19 @@ namespace gexex
                                     .withHeight((int) (bounds.getHeight() * 0.42f))
                                     .toFloat();
 
-        // A dark glass "screen" the trace lives on, like a little embedded
-        // scope display rather than a bare line floating over the grass --
-        // gives the whole thing a home instead of just hovering.
+        // A light glass "screen" the trace lives on, like a little
+        // embedded scope display rather than a bare line floating over
+        // the grass -- gives the whole thing a home instead of just
+        // hovering. Reuses the same glass-panel colours every other card
+        // in the rack uses (rather than the strip's own one-off dark
+        // panel this used to be) so it actually reads as part of the
+        // "fruity aero" theme instead of a mismatched dark rectangle.
         const auto panelArea = traceArea.expanded(12.0f, 7.0f);
-        g.setColour(juce::Colour(0xCC10202C));
+        g.setColour(GexexLookAndFeel::panelFillColour());
         g.fillRoundedRectangle(panelArea, 12.0f);
-        g.setColour(juce::Colours::white.withAlpha(0.05f));
+        g.setColour(juce::Colours::white.withAlpha(0.5f));
         g.fillRoundedRectangle(panelArea.withHeight(panelArea.getHeight() * 0.4f), 12.0f); // glassy top sheen
-        g.setColour(juce::Colours::white.withAlpha(0.14f));
+        g.setColour(GexexLookAndFeel::panelBorderColour());
         g.drawRoundedRectangle(panelArea.reduced(0.5f), 12.0f, 1.1f);
 
         // Trail: recent frames drawn oldest-first beneath the live trace,
@@ -91,25 +96,27 @@ namespace gexex
                 const int idx = (trailWriteIndex + j) % trailLength; // oldest (j=0) .. newest-of-trail
                 const float age = (float) j / (float) (trailLength - 1);
                 auto trailPath = buildTracePath(trailSamples[(size_t) idx].data(), traceArea);
-                g.setColour(juce::Colour(0xffb84fd8)
+                g.setColour(juce::Colour(0xff9a2fb8)
                                 .withRotatedHue((1.0f - age) * -0.16f)
-                                .withAlpha(juce::jlimit(0.0f, 0.32f, age * 0.32f * peak * 2.0f)));
+                                .withAlpha(juce::jlimit(0.0f, 0.4f, age * 0.4f * peak * 2.0f)));
                 g.strokePath(trailPath, juce::PathStrokeType(1.6f + age * 1.4f, juce::PathStrokeType::curved,
                                                               juce::PathStrokeType::rounded));
             }
         }
 
-        // Live trace on top: soft wide glow behind a bright core stroke --
-        // both fade all the way to (near-)invisible at silence and bloom
-        // in with the recent peak, so nothing reads as a static bar
-        // floating over the grass when nothing's playing.
+        // Live trace on top: soft coloured glow behind a darker core
+        // stroke -- on a light panel a *darker* line reads clearly while
+        // a lighter halo blooms softly around it (the inverse of what
+        // worked on the strip's old dark panel, where the glow needed to
+        // be light and the core could stay saturated). Both still fade to
+        // (near-)invisible at silence and bloom in with the recent peak.
         if (peak > 0.003f)
         {
             auto path = buildTracePath(samples, traceArea);
-            g.setColour(juce::Colours::white.withAlpha(juce::jlimit(0.0f, 0.5f, peak * 0.6f)));
+            g.setColour(juce::Colour(0xff2aa9c9).withAlpha(juce::jlimit(0.0f, 0.55f, peak * 0.65f)));
             g.strokePath(path, juce::PathStrokeType(5.5f + peak * 5.0f, juce::PathStrokeType::curved,
                                                       juce::PathStrokeType::rounded));
-            g.setColour(juce::Colour(0xff2aa9c9).withAlpha(juce::jlimit(0.0f, 1.0f, 0.15f + peak * 1.6f)));
+            g.setColour(juce::Colour(0xff0f5a70).withAlpha(juce::jlimit(0.0f, 1.0f, 0.25f + peak * 1.6f)));
             g.strokePath(path,
                          juce::PathStrokeType(2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
         }

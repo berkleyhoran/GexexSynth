@@ -9,6 +9,7 @@
 #include "DelayVisual.h"
 #include "Scope.h"
 #include "LfoShapePreview.h"
+#include "SignalChainEditor.h"
 #include "../ScopeDataSource.h"
 
 namespace gexex
@@ -55,6 +56,7 @@ namespace gexex
         std::unique_ptr<DelayVisual> delayVisual;
         std::unique_ptr<LfoShapePreview> lfoShapePreview;
         std::unique_ptr<LfoShapePreview> lfoShapePreview2;
+        std::unique_ptr<SignalChainEditor> signalChainEditor;
         juce::OwnedArray<Scope> scopes;
 
         static constexpr int cardWidth = 220;

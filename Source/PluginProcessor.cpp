@@ -112,8 +112,27 @@ void GexexSynthAudioProcessor::updateEngineParameters(int blockNumSamples) noexc
     // has no direct "jump forward N samples" API, but N tight calls here
     // cost the same as N calls anywhere else and this only runs once per
     // block, not once per voice.
-    modEnvelope.setParameters({ getFloatParam(ParamIDs::modEnvAttack), getFloatParam(ParamIDs::modEnvDecay),
-                                 getFloatParam(ParamIDs::modEnvSustain), getFloatParam(ParamIDs::modEnvRelease) });
+    {
+        // Guarded the same way Voice::setEnvelopeParameters() is -- see
+        // its comment: juce::ADSR::setParameters() isn't safe to call
+        // unconditionally every block during playback (JUCE's own docs
+        // warn against it, and its release-rate recalculation isn't
+        // actually value-independent), which would otherwise truncate
+        // this envelope's release the same way it was doing to the amp
+        // envelope.
+        const juce::ADSR::Parameters newModEnvParams { getFloatParam(ParamIDs::modEnvAttack),
+                                                          getFloatParam(ParamIDs::modEnvDecay),
+                                                          getFloatParam(ParamIDs::modEnvSustain),
+                                                          getFloatParam(ParamIDs::modEnvRelease) };
+        const auto& currentModEnvParams = modEnvelope.getParameters();
+        if (! juce::approximatelyEqual(currentModEnvParams.attack, newModEnvParams.attack)
+            || ! juce::approximatelyEqual(currentModEnvParams.decay, newModEnvParams.decay)
+            || ! juce::approximatelyEqual(currentModEnvParams.sustain, newModEnvParams.sustain)
+            || ! juce::approximatelyEqual(currentModEnvParams.release, newModEnvParams.release))
+        {
+            modEnvelope.setParameters(newModEnvParams);
+        }
+    }
     float modEnvValue = 0.0f;
     for (int i = 0; i < blockNumSamples; ++i)
         modEnvValue = modEnvelope.getNextSample();

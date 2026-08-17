@@ -146,18 +146,16 @@ namespace gexex
         addSection("Effects", GexexLookAndFeel::categoryColour(category));
 
         {
-            // The insert chain's execution order/inclusion -- 7 slots, each
-            // independently assignable to any serial effect below (or left
-            // Empty). This is what makes the rack "reorderable": drag isn't
-            // needed when every slot is its own automatable dropdown --
-            // change what runs where by picking a different effect per
-            // slot, same idiom as a lot of rack-style plugins' insert
-            // chains. Delay/Reverb aren't here -- they're parallel sends,
-            // not inserts, and stay at their own fixed point in the signal
-            // flow (see EffectsChain.h's class comment).
+            // The insert chain's execution order/inclusion -- 7 slots
+            // (Empty or one of the serial effects below), backed by the
+            // same fxSlot0..6 params as always, but edited as an actual
+            // drag-to-reorder list instead of 7 stacked dropdowns (see
+            // SignalChainEditor.h). Delay/Reverb aren't here -- they're
+            // parallel sends, not inserts, and stay at their own fixed
+            // point in the signal flow (see EffectsChain.h's class comment).
             auto& card = addCard("Signal Chain", category++);
-            for (int slot = 0; slot < numFxSlots; ++slot)
-                card.addCombo(apvts, fxSlotParamID(slot), "Slot " + juce::String(slot + 1));
+            signalChainEditor = std::make_unique<SignalChainEditor>(apvts);
+            card.addCustomComponent(*signalChainEditor, numFxSlots * 26);
         }
 
         {
