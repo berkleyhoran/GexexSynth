@@ -97,10 +97,16 @@ namespace gexex
             g.drawRoundedRectangle(bounds.reduced(0.5f), 10.0f, 1.2f);
 
             // A thin accent-colored strip along the top, tying the card to
-            // its category color even where it has no knobs (e.g. Envelope).
-            auto stripArea = bounds.removeFromTop(4.0f).reduced(10.0f, 0.0f);
+            // its category color even where it has no knobs (e.g.
+            // Envelope). Flush with the card's own edges (not inset) --
+            // only the top two corners rounded, matching the card outline
+            // exactly, so it reads as part of the card's frame rather
+            // than a separate floating bar.
+            juce::Path stripPath;
+            stripPath.addRoundedRectangle(bounds.getX(), bounds.getY(), bounds.getWidth(), 6.0f, 10.0f, 10.0f, true,
+                                           true, false, false);
             g.setColour(accentColour);
-            g.fillRoundedRectangle(stripArea, 2.0f);
+            g.fillPath(stripPath);
         }
 
         void resized() override

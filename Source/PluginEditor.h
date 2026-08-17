@@ -7,6 +7,7 @@
 #include "GUI/BackgroundScene.h"
 #include "GUI/PerformanceStrip.h"
 #include "GUI/PresetBar.h"
+#include "GUI/GexexKeyboard.h"
 
 // Phase 4: the real "fruity aero" GUI -- candy-knob ModuleRack (every
 // module from the reference minus the dropped sequencer/drum-machine/
@@ -29,8 +30,8 @@ private:
     gexex::BackgroundScene backgroundScene;
     gexex::PresetBar presetBar;
     gexex::ModuleRack moduleRack;
-    gexex::PerformanceStrip performanceStrip;
-    juce::MidiKeyboardComponent keyboard;
+    gexex::GexexKeyboard keyboard;
+    gexex::PerformanceStrip performanceStrip; // added/painted last -- grass sits in front of everything, incl. the keyboard
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GexexSynthAudioProcessorEditor)
 };

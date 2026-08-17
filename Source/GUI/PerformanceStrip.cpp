@@ -27,20 +27,25 @@ namespace gexex
     {
         auto bounds = getLocalBounds();
 
-        // Sky continues down into the strip so the grass doesn't read as
-        // a separate box stuck on top of the rack's background.
-        g.setGradientFill(juce::ColourGradient(juce::Colour(0xffdcf1fb), 0.0f, 0.0f, juce::Colour(0xfff5fbff), 0.0f,
-                                                (float) bounds.getHeight(), false));
-        g.fillAll();
-
+        // No flat background fill here on purpose -- this component is
+        // deliberately taller than its "ground line" and overlaps both
+        // the rack above and the keyboard above it (see PluginEditor's
+        // resized()). grass.png already has real alpha transparency at
+        // its blade tips (confirmed directly against the asset), so
+        // painting only the grass/daisies/trace and nothing else lets
+        // whatever's underneath -- rack cards through the transparent
+        // tips, the keyboard through the solid base's lower overlap --
+        // show through exactly where it should, instead of a flat color
+        // band fighting the image's own transparency.
         drawTiledLayer(g, grassImage, bounds);
 
-        // Mirrored daisies anchored at both ends, framing the strip.
+        // Mirrored daisies anchored low, in the solid/opaque part of the
+        // grass near the bottom rather than centered in the tall strip.
         if (daisyImage.isValid())
         {
             const int daisyW = juce::jmin(110, bounds.getWidth() / 10);
             const int daisyH = (int) (daisyW * (float) daisyImage.getHeight() / (float) daisyImage.getWidth());
-            const int daisyY = bounds.getBottom() - daisyH - (int) (bounds.getHeight() * 0.08f);
+            const int daisyY = bounds.getBottom() - daisyH - (int) (bounds.getHeight() * 0.06f);
 
             g.drawImage(daisyImage, 6, daisyY, daisyW, daisyH, 0, 0, daisyImage.getWidth(), daisyImage.getHeight());
 
@@ -53,9 +58,9 @@ namespace gexex
             g.drawImageTransformed(daisyImage, flip);
         }
 
-        // The glowing master trace -- brightens/thickens with the actual
-        // signal peak, so it visibly reacts to what's being played rather
-        // than animating on its own.
+        // The glowing master trace, floating in the upper (transparent-
+        // blade-tip) zone so it reads as hovering just above the grass
+        // rather than buried in the dense lower half.
         float samples[ScopeDataSource<>::size];
         scopeSource.copyOut(samples);
         float peak = 0.0f;
@@ -63,8 +68,8 @@ namespace gexex
             peak = juce::jmax(peak, std::abs(s));
 
         const auto traceArea = bounds.reduced(juce::jmin(140, bounds.getWidth() / 6), 0)
-                                    .withY(bounds.getY() + (int) (bounds.getHeight() * 0.12f))
-                                    .withHeight((int) (bounds.getHeight() * 0.5f));
+                                    .withY(bounds.getY() + (int) (bounds.getHeight() * 0.06f))
+                                    .withHeight((int) (bounds.getHeight() * 0.34f));
         const float midY = (float) traceArea.getCentreY();
         const float ampScale = (float) traceArea.getHeight() * 0.5f;
 

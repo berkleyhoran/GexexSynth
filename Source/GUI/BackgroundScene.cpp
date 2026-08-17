@@ -67,13 +67,17 @@ namespace gexex
             const float t = std::fmod((float) elapsedSeconds + b.phaseSeconds, b.cycleSeconds) / b.cycleSeconds;
             const float x = b.xFraction * (float) bounds.getWidth();
             const float y = (float) bounds.getHeight() * (1.12f - t * 1.3f);
+            // y crosses the top edge (0) at t = 1.12/1.3 = 0.862 -- the
+            // fade-out below finishes well before that (by t=0.75) so a
+            // bubble is already fully invisible before it would otherwise
+            // get visibly clipped by the component's top edge.
             float alpha = 0.0f;
             if (t < 0.1f)
-                alpha = t / 0.1f * 0.8f;
-            else if (t < 0.7f)
-                alpha = 0.8f;
+                alpha = t / 0.1f * 0.9f;
+            else if (t < 0.55f)
+                alpha = 0.9f;
             else
-                alpha = juce::jmax(0.0f, 0.8f * (1.0f - (t - 0.7f) / 0.3f));
+                alpha = juce::jmax(0.0f, 0.9f * (1.0f - (t - 0.55f) / 0.2f));
 
             if (alpha > 0.01f && bubbleImage.isValid())
             {

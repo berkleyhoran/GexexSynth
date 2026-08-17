@@ -205,48 +205,61 @@ namespace gexex
         const int perRow = juce::jmax(1, (viewportWidth - cardGap) / (cardWidth + cardGap));
         const int rowSpanWidth = perRow * (cardWidth + cardGap) + cardGap;
 
-        int x = cardGap;
-        int y = cardGap;
-        int col = 0;
-        int rowMaxHeight = 0;
+        // Pass 1: group flowItems into rows -- a header always starts a
+        // fresh row of its own; cards accumulate up to perRow per row.
+        // Every card in a row is later stretched to that row's tallest
+        // card's height rather than keeping its own natural height, which
+        // is what keeps the grid from reading as a ragged, distracting
+        // mismatch when neighboring modules have very different control
+        // counts (e.g. Envelope next to a 3-knob effect).
+        struct Row
+        {
+            std::vector<ModuleCard*> rowCards;
+            SectionHeader* header = nullptr;
+            int height = 0;
+        };
+        std::vector<Row> rows;
 
         for (auto& item : flowItems)
         {
             if (item.isSectionHeader)
             {
-                if (col != 0)
-                {
-                    y += rowMaxHeight + cardGap;
-                    col = 0;
-                    x = cardGap;
-                    rowMaxHeight = 0;
-                }
-                item.component->setBounds(cardGap, y, rowSpanWidth - cardGap * 2, sectionHeaderHeight);
-                y += sectionHeaderHeight + cardGap;
+                rows.push_back({ {}, static_cast<SectionHeader*>(item.component), sectionHeaderHeight });
                 continue;
             }
 
             auto* card = static_cast<ModuleCard*>(item.component);
             const int h = card->getPreferredHeight(cardWidth);
-            card->setBounds(x, y, cardWidth, h);
-            rowMaxHeight = juce::jmax(rowMaxHeight, h);
 
-            ++col;
-            if (col >= perRow)
+            if (rows.empty() || rows.back().header != nullptr || (int) rows.back().rowCards.size() >= perRow)
+                rows.push_back({});
+
+            auto& row = rows.back();
+            row.rowCards.push_back(card);
+            row.height = juce::jmax(row.height, h);
+        }
+
+        // Pass 2: lay out each row at its equalized height.
+        int y = cardGap;
+        for (auto& row : rows)
+        {
+            if (row.header != nullptr)
             {
-                col = 0;
-                x = cardGap;
-                y += rowMaxHeight + cardGap;
-                rowMaxHeight = 0;
+                row.header->setBounds(cardGap, y, rowSpanWidth - cardGap * 2, row.height);
             }
             else
             {
-                x += cardWidth + cardGap;
+                int x = cardGap;
+                for (auto* card : row.rowCards)
+                {
+                    card->setBounds(x, y, cardWidth, row.height);
+                    x += cardWidth + cardGap;
+                }
             }
+            y += row.height + cardGap;
         }
 
-        const int contentHeight = y + rowMaxHeight + cardGap;
-        content.setSize(rowSpanWidth, contentHeight);
+        content.setSize(rowSpanWidth, y);
     }
 
     void ModuleRack::resized()
