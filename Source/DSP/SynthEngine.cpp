@@ -165,6 +165,36 @@ namespace gexex
         arp.clearHeldNotes();
     }
 
+    int SynthEngine::getMonitorVoiceIndex() const noexcept
+    {
+        if (voiceMode == VoiceMode::Mono)
+            return voices[0].isActive() ? 0 : -1;
+
+        int best = -1;
+        for (int i = 0; i < maxVoices; ++i)
+        {
+            if (voices[(size_t) i].isActive()
+                && (best < 0 || voiceTriggerOrder[(size_t) i] > voiceTriggerOrder[(size_t) best]))
+                best = i;
+        }
+        return best;
+    }
+
+    SynthEngine::MonitorSamples SynthEngine::getMonitorSamples() const noexcept
+    {
+        MonitorSamples result;
+        const int idx = getMonitorVoiceIndex();
+        if (idx < 0)
+            return result;
+
+        const auto& v = voices[(size_t) idx];
+        result.osc[0] = v.getLastOscSample(0);
+        result.osc[1] = v.getLastOscSample(1);
+        result.osc[2] = v.getLastOscSample(2);
+        result.output = v.getLastOutputSample();
+        return result;
+    }
+
     float SynthEngine::renderNextSample() noexcept
     {
         arp.advanceSample([this](int note) { internalNoteOn(note, getStoredVelocity(note)); },

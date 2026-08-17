@@ -2,11 +2,13 @@
 #include "PluginEditor.h"
 
 GexexSynthAudioProcessorEditor::GexexSynthAudioProcessorEditor(GexexSynthAudioProcessor& p)
-    : AudioProcessorEditor(&p), processorRef(p), moduleRack(p.apvts),
+    : AudioProcessorEditor(&p), processorRef(p), backgroundScene(p.apvts),
+      moduleRack(p.apvts, p.getOscScope(0), p.getOscScope(1), p.getOscScope(2), p.getMasterScope()),
       keyboard(p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard)
 {
     setLookAndFeel(&lookAndFeel);
 
+    addAndMakeVisible(backgroundScene); // added first -- paints behind everything else
     addAndMakeVisible(moduleRack);
 
     keyboard.setAvailableRange(24, 108); // C1 - C8, comfortably covers this synth's practical range
@@ -23,18 +25,16 @@ GexexSynthAudioProcessorEditor::~GexexSynthAudioProcessorEditor()
     setLookAndFeel(nullptr);
 }
 
-void GexexSynthAudioProcessorEditor::paint(juce::Graphics& g)
+void GexexSynthAudioProcessorEditor::paint(juce::Graphics&)
 {
-    // Placeholder sky gradient -- Phase 5's BackgroundScene (parallax
-    // clouds/bubbles/grass/daisies from gexex/assets) replaces this.
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0xffbfe4fb), 0.0f, 0.0f, juce::Colour(0xffffffff), 0.0f,
-                                            (float) getHeight(), false));
-    g.fillAll();
+    // BackgroundScene (a full-bounds child, painted first) handles all of
+    // the actual drawing now.
 }
 
 void GexexSynthAudioProcessorEditor::resized()
 {
     auto bounds = getLocalBounds();
+    backgroundScene.setBounds(bounds);
     keyboard.setBounds(bounds.removeFromBottom(80));
     moduleRack.setBounds(bounds);
 }

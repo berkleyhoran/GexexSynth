@@ -25,6 +25,16 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(JUCE)
 
 # ---------------------------------------------------------------------------
+# Background art -> BinaryData
+# ---------------------------------------------------------------------------
+# Downscaled/re-exported from gexex/assets (the source PNGs are 1.7-4.5MB at
+# full res -- not appropriate to embed directly; see Assets/background/'s
+# generation notes in the Phase 5 commit).
+file(GLOB GEXEXSYNTH_BACKGROUND_ASSETS ${CMAKE_CURRENT_SOURCE_DIR}/Assets/background/*.png)
+juce_add_binary_data(GexexSynthAssets SOURCES ${GEXEXSYNTH_BACKGROUND_ASSETS})
+set_target_properties(GexexSynthAssets PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# ---------------------------------------------------------------------------
 # Plugin target
 # ---------------------------------------------------------------------------
 # App/installer icon: drop a square-ish PNG at Assets/logo.png and it's
@@ -69,7 +79,8 @@ target_sources(GexexSynth PRIVATE
     Source/DSP/SynthEngine.cpp
     Source/DSP/Effects/EffectsChain.cpp
     Source/GUI/LookAndFeel.cpp
-    Source/GUI/ModuleRack.cpp)
+    Source/GUI/ModuleRack.cpp
+    Source/GUI/BackgroundScene.cpp)
 
 target_compile_definitions(GexexSynth PUBLIC
     JUCE_WEB_BROWSER=0
@@ -78,6 +89,7 @@ target_compile_definitions(GexexSynth PUBLIC
     JUCE_DISPLAY_SPLASH_SCREEN=0)
 
 target_link_libraries(GexexSynth PRIVATE
+    GexexSynthAssets
     juce::juce_audio_utils
     juce::juce_dsp
     PUBLIC

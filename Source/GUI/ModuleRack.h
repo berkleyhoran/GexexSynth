@@ -6,6 +6,9 @@
 #include "EnvelopeEditor.h"
 #include "ReverbVisual.h"
 #include "DelayVisual.h"
+#include "Scope.h"
+#include "LfoShapePreview.h"
+#include "../ScopeDataSource.h"
 
 namespace gexex
 {
@@ -16,7 +19,11 @@ namespace gexex
     class ModuleRack : public juce::Component, private juce::Timer
     {
     public:
-        explicit ModuleRack(juce::AudioProcessorValueTreeState& apvtsToUse);
+        // Scope sources are references, not owned -- they live on
+        // PluginProcessor, which outlives every editor.
+        ModuleRack(juce::AudioProcessorValueTreeState& apvtsToUse, const ScopeDataSource<>& osc1Scope,
+                   const ScopeDataSource<>& osc2Scope, const ScopeDataSource<>& osc3Scope,
+                   const ScopeDataSource<>& masterScopeSource);
 
         void resized() override;
 
@@ -33,6 +40,8 @@ namespace gexex
         std::unique_ptr<EnvelopeEditor> envelopeEditor;
         std::unique_ptr<ReverbVisual> reverbVisual;
         std::unique_ptr<DelayVisual> delayVisual;
+        std::unique_ptr<LfoShapePreview> lfoShapePreview;
+        juce::OwnedArray<Scope> scopes;
 
         static constexpr int cardWidth = 220;
         static constexpr int cardGap = 10;

@@ -4,8 +4,12 @@
 
 namespace gexex
 {
-    ModuleRack::ModuleRack(juce::AudioProcessorValueTreeState& apvtsToUse) : apvts(apvtsToUse)
+    ModuleRack::ModuleRack(juce::AudioProcessorValueTreeState& apvtsToUse, const ScopeDataSource<>& osc1Scope,
+                           const ScopeDataSource<>& osc2Scope, const ScopeDataSource<>& osc3Scope,
+                           const ScopeDataSource<>& masterScopeSource)
+        : apvts(apvtsToUse)
     {
+        const ScopeDataSource<>* oscScopeSources[3] = { &osc1Scope, &osc2Scope, &osc3Scope };
         viewport.setViewedComponent(&content, false);
         viewport.setScrollBarsShown(true, false);
         addAndMakeVisible(viewport);
@@ -26,6 +30,10 @@ namespace gexex
             if (oscNumber != 1)
                 card.addKnob(apvts, oscNumber == 2 ? ParamIDs::fmAmount2 : ParamIDs::fmAmount3, "FM->1");
             card.addToggle(apvts, oscParamID(oscNumber, ParamIDs::oscMuteSuffix), "Mute");
+
+            auto* scope = scopes.add(new Scope(GexexLookAndFeel::categoryColour(oscNumber - 1)));
+            scope->setSource(oscScopeSources[oscNumber - 1]);
+            card.addCustomComponent(*scope, 44);
         }
 
         // --- Filter ---
@@ -39,10 +47,14 @@ namespace gexex
 
         // --- LFO ---
         {
-            auto& card = addCard("LFO", category++);
+            auto& card = addCard("LFO", category);
             card.addCombo(apvts, ParamIDs::lfoWaveform, "Wave");
             card.addCombo(apvts, ParamIDs::lfoSyncDivision, "Sync");
             card.addCombo(apvts, ParamIDs::lfoTarget, "Target");
+            lfoShapePreview = std::make_unique<LfoShapePreview>(apvts, ParamIDs::lfoWaveform,
+                                                                  GexexLookAndFeel::categoryColour(category));
+            card.addCustomComponent(*lfoShapePreview, 44);
+            ++category;
             card.addKnob(apvts, ParamIDs::lfoRateHz, "Rate");
             card.addKnob(apvts, ParamIDs::lfoDepth, "Depth");
         }
@@ -122,6 +134,10 @@ namespace gexex
         }
         {
             auto& card = addCard("Master", category++);
+            auto* scope = scopes.add(new Scope(GexexLookAndFeel::categoryColour(category)));
+            scope->setSource(&masterScopeSource);
+            card.addCustomComponent(*scope, 50);
+            card.addToggle(apvts, ParamIDs::reducedMotion, "Reduced Motion");
             card.addKnob(apvts, ParamIDs::masterVolume, "Volume");
             card.addKnob(apvts, ParamIDs::masterPan, "Pan");
         }

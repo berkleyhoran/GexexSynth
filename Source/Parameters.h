@@ -69,6 +69,13 @@ namespace gexex
         static constexpr auto masterVolume = "masterVolume";
         static constexpr auto masterPan = "masterPan";
 
+        // Not a DSP parameter -- controls BackgroundScene's animation. Made
+        // a real APVTS bool rather than a plain property (unlike, say, a
+        // "current preset name" string) since it's cheap, host-savable,
+        // and genuinely worth automating-away-from-default just once per
+        // session even if automating it *live* would be silly.
+        static constexpr auto reducedMotion = "reducedMotion";
+
         // Per-oscillator suffixes -- combine with oscParamID() below so the
         // same 3-oscillator layout isn't hand-typed three times.
         static constexpr auto oscWaveSuffix = "Wave";

@@ -47,7 +47,19 @@ namespace gexex
 
         float renderNextSample() noexcept;
 
+        // For the mini-oscilloscopes (Phase 5): with 16 voices there's no
+        // single "the" oscillator signal, so this reports whichever active
+        // voice was triggered most recently -- the one a player's ear is
+        // actually tracking -- rather than an arbitrary fixed slot.
+        struct MonitorSamples
+        {
+            float osc[3] { 0.0f, 0.0f, 0.0f };
+            float output = 0.0f;
+        };
+        MonitorSamples getMonitorSamples() const noexcept;
+
     private:
+        int getMonitorVoiceIndex() const noexcept;
         void internalNoteOn(int midiNote, float velocity) noexcept;
         void internalNoteOff(int midiNote) noexcept;
         void allNotesOff() noexcept;

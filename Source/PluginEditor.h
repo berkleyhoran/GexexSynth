@@ -4,6 +4,7 @@
 #include "PluginProcessor.h"
 #include "GUI/LookAndFeel.h"
 #include "GUI/ModuleRack.h"
+#include "GUI/BackgroundScene.h"
 
 // Phase 4: the real "fruity aero" GUI -- candy-knob ModuleRack (every
 // module from the reference minus the dropped sequencer/drum-machine/
@@ -23,6 +24,7 @@ public:
 private:
     GexexSynthAudioProcessor& processorRef;
     gexex::GexexLookAndFeel lookAndFeel;
+    gexex::BackgroundScene backgroundScene;
     gexex::ModuleRack moduleRack;
     juce::MidiKeyboardComponent keyboard;
 

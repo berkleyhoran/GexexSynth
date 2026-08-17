@@ -182,9 +182,23 @@ void GexexSynthAudioProcessor::renderVoiceBlock(juce::AudioBuffer<float>& buffer
         return;
 
     for (int i = 0; i < numSamples; ++i)
-        monoScratch.setSample(0, i, synthEngine.renderNextSample() * ampModMultiplier);
+    {
+        const float raw = synthEngine.renderNextSample();
+        monoScratch.setSample(0, i, raw * ampModMultiplier);
+
+        const auto monitor = synthEngine.getMonitorSamples();
+        oscScopes[0].push(monitor.osc[0]);
+        oscScopes[1].push(monitor.osc[1]);
+        oscScopes[2].push(monitor.osc[2]);
+    }
 
     effectsChain.process(monoScratch.getReadPointer(0), buffer, startSample, numSamples);
+
+    // Master scope reads the *actual* final output (post effects chain),
+    // not the pre-effects voice sum -- pushed after effectsChain::process
+    // has written into `buffer` for exactly that reason.
+    for (int i = 0; i < numSamples; ++i)
+        masterScope.push(buffer.getSample(0, startSample + i));
 }
 
 void GexexSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)

@@ -193,5 +193,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout gexex::createParameterLayout
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::masterPan, "Master Pan", NormalisableRange<float>(-1.0f, 1.0f), 0.0f));
 
+    params.push_back(std::make_unique<AudioParameterBool>(ParamIDs::reducedMotion, "Reduced Motion", false));
+
     return AudioProcessorValueTreeState::ParameterLayout(params.begin(), params.end());
 }

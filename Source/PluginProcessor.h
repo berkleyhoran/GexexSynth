@@ -6,6 +6,7 @@
 #include "DSP/Lfo.h"
 #include "DSP/ModMatrix.h"
 #include "DSP/Effects/EffectsChain.h"
+#include "ScopeDataSource.h"
 
 // Phase 3: the full signal path -- SynthEngine (Phase 2's oscillators/FM/
 // voices/arp) feeding EffectsChain (bitcrush/drive/delay/reverb/chorus/
@@ -62,6 +63,12 @@ public:
     // arp path a hardware controller's notes would.
     juce::MidiKeyboardState keyboardState;
 
+    // Mini-oscilloscope feeds (Phase 5) -- public so GUI Scope components
+    // can point at them directly; see ScopeDataSource.h for why plain
+    // atomics are enough thread-safety for a visual-only consumer.
+    const gexex::ScopeDataSource<>& getOscScope(int oscIndex) const noexcept { return oscScopes[(size_t) oscIndex]; }
+    const gexex::ScopeDataSource<>& getMasterScope() const noexcept { return masterScope; }
+
 private:
     // Reads the current APVTS values (+ this block's LFO reading) and
     // pushes fully-resolved values into synthEngine/effectsChain -- called
@@ -79,6 +86,9 @@ private:
 
     juce::AudioBuffer<float> monoScratch;
     float ampModMultiplier = 1.0f; // resolved once per block in updateEngineParameters, applied per-sample below
+
+    std::array<gexex::ScopeDataSource<>, 3> oscScopes;
+    gexex::ScopeDataSource<> masterScope;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GexexSynthAudioProcessor)
 };

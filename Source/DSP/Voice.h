@@ -173,8 +173,21 @@ namespace gexex
                                                  * oscSettings[2].level;
 
             const float filtered = filter.processSample(0, mixed);
-            return filtered * envelope.getNextSample();
+            const float output = filtered * envelope.getNextSample();
+
+            // Stashed for the mini-oscilloscopes (Phase 5) -- raw,
+            // pre-fold/level oscillator output and the voice's final
+            // output, read back by SynthEngine's "monitor voice" picker.
+            lastOscRaw[0] = osc1Raw;
+            lastOscRaw[1] = osc2Raw;
+            lastOscRaw[2] = osc3Raw;
+            lastOutputSample = output;
+
+            return output;
         }
+
+        float getLastOscSample(int oscIndex) const noexcept { return lastOscRaw[(size_t) oscIndex]; }
+        float getLastOutputSample() const noexcept { return lastOutputSample; }
 
     private:
         // velocitySensitivity 0..1 scales up to +-4 octaves of cutoff shift
@@ -205,5 +218,7 @@ namespace gexex
         float baseCutoffHz = 2000.0f;
         float velocitySensitivity = 0.0f;
         double sampleRate = 44100.0;
+        std::array<float, 3> lastOscRaw { 0.0f, 0.0f, 0.0f };
+        float lastOutputSample = 0.0f;
     };
 }
