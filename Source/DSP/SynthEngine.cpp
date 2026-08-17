@@ -22,6 +22,36 @@ namespace gexex
             v.setNoiseSettings(settings);
     }
 
+    void SynthEngine::setSubOscSettings(const SubOscSettings& settings) noexcept
+    {
+        for (auto& v : voices)
+            v.setSubOscSettings(settings);
+    }
+
+    void SynthEngine::setFilterRouting(FilterRouting routing) noexcept
+    {
+        for (auto& v : voices)
+            v.setFilterRouting(routing);
+    }
+
+    void SynthEngine::setFilter2CutoffHz(float hz) noexcept
+    {
+        for (auto& v : voices)
+            v.setFilter2CutoffHz(hz);
+    }
+
+    void SynthEngine::setFilter2Resonance(float resonance) noexcept
+    {
+        for (auto& v : voices)
+            v.setFilter2Resonance(resonance);
+    }
+
+    void SynthEngine::setFilter2Type(juce::dsp::StateVariableTPTFilterType type) noexcept
+    {
+        for (auto& v : voices)
+            v.setFilter2Type(type);
+    }
+
     void SynthEngine::setFmAmount(int modulatorIndex, float amount) noexcept
     {
         for (auto& v : voices)

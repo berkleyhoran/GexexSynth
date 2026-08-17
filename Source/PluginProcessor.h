@@ -90,7 +90,17 @@ private:
 
     gexex::SynthEngine synthEngine;
     gexex::Lfo lfo;
+    gexex::Lfo lfo2;
     gexex::EffectsChain effectsChain;
+
+    // Mod Envelope: a 2nd, independently-routable ADSR alongside the two
+    // LFOs (see Parameters.h's comment on why this is a single shared
+    // envelope rather than per-voice). Triggered by held-note transitions
+    // tracked in processBlock's MIDI loop, not by SynthEngine directly --
+    // it's a block-rate modulation *source* like the LFOs, not a voice
+    // component, so it lives at this level instead of inside Voice.
+    juce::ADSR modEnvelope;
+    int heldNoteCount = 0;
 
     juce::AudioBuffer<float> monoScratch;
     float ampModMultiplier = 1.0f; // resolved once per block in updateEngineParameters, applied per-sample below

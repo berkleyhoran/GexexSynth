@@ -28,6 +28,27 @@ namespace gexex
         bool muted = false;
     };
 
+    // Sub-oscillator: a 5th sound source (after the noise generator),
+    // pitched a selectable octave (or two) below the voice's root note --
+    // reuses the main PolyBlepOscillator/Waveform machinery rather than a
+    // bespoke sine-only generator, so it can be a square/triangle sub too.
+    struct SubOscSettings
+    {
+        Waveform waveform = Waveform::Sine;
+        int octaveDown = 1; // 1 or 2
+        float level = 0.0f; // defaults silent, same convention as osc2/3/noise
+        bool muted = false;
+    };
+
+    // Choice item order must match Parameters.cpp's filterRouting choices
+    // exactly (Filter 1 Only, Series, Parallel).
+    enum class FilterRouting
+    {
+        Filter1Only,
+        Series,
+        Parallel
+    };
+
     // One polyphonic voice: 3 PolyBLEP oscillators (osc2/osc3 phase-
     // modulating osc1, i.e. FM) -> a mix -> one TPT state-variable filter ->
     // one ADSR envelope. Owned in a fixed pool by SynthEngine, which also
@@ -50,6 +71,9 @@ namespace gexex
                 o.setSampleRate(sampleRate);
             filter.prepare(spec);
             filter.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
+            filter2.prepare(spec);
+            filter2.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
+            subOscillator.setSampleRate(sampleRate);
             envelope.setSampleRate(sampleRate);
             glideSmoother.reset(sampleRate, 0.0);
         }
@@ -61,6 +85,7 @@ namespace gexex
         }
 
         void setNoiseSettings(const NoiseSettings& settings) noexcept { noiseSettings = settings; }
+        void setSubOscSettings(const SubOscSettings& settings) noexcept { subSettings = settings; }
 
         // amount: 0..1, osc2->osc1 (index 0) or osc3->osc1 (index 1).
         void setFmAmount(int modulatorIndex, float amount) noexcept
@@ -86,6 +111,15 @@ namespace gexex
         }
         void setFilterResonance(float resonance) noexcept { filter.setResonance(resonance); }
         void setFilterType(juce::dsp::StateVariableTPTFilterType type) noexcept { filter.setType(type); }
+
+        void setFilterRouting(FilterRouting routing) noexcept { filterRouting = routing; }
+        void setFilter2CutoffHz(float cutoffHz) noexcept
+        {
+            filter2.setCutoffFrequency(juce::jlimit(20.0f, 20000.0f, cutoffHz));
+        }
+        void setFilter2Resonance(float resonance) noexcept { filter2.setResonance(resonance); }
+        void setFilter2Type(juce::dsp::StateVariableTPTFilterType type) noexcept { filter2.setType(type); }
+
         void setEnvelopeParameters(const juce::ADSR::Parameters& params) noexcept { envelope.setParameters(params); }
 
         // The LFO's "Pitch (all osc)" target is the one modulation
@@ -127,6 +161,7 @@ namespace gexex
 
             for (auto& o : oscillators)
                 o.resetPhase();
+            subOscillator.resetPhase();
             envelope.noteOn();
         }
 
@@ -188,7 +223,37 @@ namespace gexex
             // noise generator would.
             mixed += noiseSettings.muted ? 0.0f : noiseGenerator.renderSample(noiseSettings.type) * noiseSettings.level;
 
-            const float filtered = filter.processSample(0, mixed);
+            // Sub-oscillator: a 5th source, pitched an octave (or two)
+            // below the root -- tracks glide/pitch-mod the same way the
+            // main oscillators do since it's derived from the same
+            // rootNote, just shifted down before the octave/semitone math
+            // the main oscillators apply.
+            if (! subSettings.muted && subSettings.level > 0.0f)
+            {
+                const float subNote = rootNote - 12.0f * (float) subSettings.octaveDown;
+                subOscillator.setFrequency(noteNumberToHz(subNote));
+                mixed += subOscillator.renderSample(subSettings.waveform, 0.5f) * subSettings.level;
+            }
+
+            // Filter routing: Filter1Only matches the original single-
+            // filter behaviour exactly; Series feeds filter 1's output
+            // into filter 2; Parallel runs both on the same dry mix and
+            // averages them (halved rather than summed raw, so enabling
+            // Parallel doesn't itself double the level versus Filter1Only).
+            float filtered;
+            switch (filterRouting)
+            {
+                case FilterRouting::Series:
+                    filtered = filter2.processSample(0, filter.processSample(0, mixed));
+                    break;
+                case FilterRouting::Parallel:
+                    filtered = 0.5f * (filter.processSample(0, mixed) + filter2.processSample(0, mixed));
+                    break;
+                case FilterRouting::Filter1Only:
+                default:
+                    filtered = filter.processSample(0, mixed);
+                    break;
+            }
             const float output = filtered * envelope.getNextSample();
 
             // Stashed for the mini-oscilloscopes (Phase 5) -- raw,
@@ -225,8 +290,12 @@ namespace gexex
         std::array<float, 2> fmAmount { 0.0f, 0.0f };
         NoiseGenerator noiseGenerator;
         NoiseSettings noiseSettings;
+        PolyBlepOscillator subOscillator;
+        SubOscSettings subSettings;
 
         juce::dsp::StateVariableTPTFilter<float> filter;
+        juce::dsp::StateVariableTPTFilter<float> filter2;
+        FilterRouting filterRouting = FilterRouting::Filter1Only;
         juce::ADSR envelope;
         juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> glideSmoother;
         bool hasSoundedBefore = false;

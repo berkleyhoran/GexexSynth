@@ -7,6 +7,16 @@ juce::String gexex::oscParamID(int oscNumber, const juce::String& suffix)
     return "osc" + juce::String(oscNumber) + suffix;
 }
 
+const char* gexex::fxSlotParamID(int slotIndex) noexcept
+{
+    static const char* ids[gexex::numFxSlots] = { gexex::ParamIDs::fxSlot0, gexex::ParamIDs::fxSlot1,
+                                                    gexex::ParamIDs::fxSlot2, gexex::ParamIDs::fxSlot3,
+                                                    gexex::ParamIDs::fxSlot4, gexex::ParamIDs::fxSlot5,
+                                                    gexex::ParamIDs::fxSlot6 };
+    jassert(slotIndex >= 0 && slotIndex < gexex::numFxSlots);
+    return ids[slotIndex];
+}
+
 juce::AudioProcessorValueTreeState::ParameterLayout gexex::createParameterLayout()
 {
     using namespace juce;
@@ -74,6 +84,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout gexex::createParameterLayout
         ParamIDs::noiseLevel, "Noise Level", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
     params.push_back(std::make_unique<AudioParameterBool>(ParamIDs::noiseMute, "Noise Mute", false));
 
+    // Sub-oscillator: same waveformChoices/index convention as osc1-3 (see
+    // ParamIDs.h's comment), so this casts straight to gexex::Waveform too.
+    params.push_back(
+        std::make_unique<AudioParameterChoice>(ParamIDs::subWaveform, "Sub Wave", waveformChoices, 0 /* Sine */));
+    params.push_back(std::make_unique<AudioParameterInt>(ParamIDs::subOctaveDown, "Sub Octave", 1, 2, 1));
+    params.push_back(
+        std::make_unique<AudioParameterFloat>(ParamIDs::subLevel, "Sub Level", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
+    params.push_back(std::make_unique<AudioParameterBool>(ParamIDs::subMute, "Sub Mute", false));
+
     // Choice item order matches juce::dsp::StateVariableTPTFilterType exactly
     // (Lowpass, Bandpass, Highpass) so the index casts straight across.
     params.push_back(std::make_unique<AudioParameterChoice>(
@@ -86,6 +105,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout gexex::createParameterLayout
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::filterVelSens, "Filter Vel->Cutoff", NormalisableRange<float>(0.0f, 1.0f), 0.3f));
 
+    // Choice item order must match gexex::FilterRouting exactly (Filter1Only, Series, Parallel).
+    params.push_back(std::make_unique<AudioParameterChoice>(
+        ParamIDs::filterRouting, "Filter Routing", StringArray { "Filter 1 Only", "Series", "Parallel" }, 0));
+    params.push_back(std::make_unique<AudioParameterChoice>(
+        ParamIDs::filter2Type, "Filter 2 Type", StringArray { "Lowpass", "Bandpass", "Highpass" }, 0));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::filter2Cutoff, "Filter 2 Cutoff", NormalisableRange<float>(20.0f, 20000.0f, 0.0f, 0.25f), 8000.0f,
+        AudioParameterFloatAttributes().withLabel("Hz")));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::filter2Resonance, "Filter 2 Resonance", NormalisableRange<float>(0.1f, 20.0f, 0.0f, 0.35f), 0.707f));
+
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::envAttack, "Attack", NormalisableRange<float>(0.001f, 3.0f, 0.0f, 0.3f), 0.02f,
         AudioParameterFloatAttributes().withLabel("s")));
@@ -97,6 +127,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout gexex::createParameterLayout
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::envRelease, "Release", NormalisableRange<float>(0.001f, 5.0f, 0.0f, 0.3f), 0.3f,
         AudioParameterFloatAttributes().withLabel("s")));
+
+    // --- Mod Envelope (a 2nd, independently-routable ADSR -- see the
+    // ParamIDs.h comment on why it isn't per-voice like the amp envelope) ---
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::modEnvAttack, "Mod Env Attack", NormalisableRange<float>(0.001f, 3.0f, 0.0f, 0.3f), 0.02f,
+        AudioParameterFloatAttributes().withLabel("s")));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::modEnvDecay, "Mod Env Decay", NormalisableRange<float>(0.001f, 3.0f, 0.0f, 0.3f), 0.4f,
+        AudioParameterFloatAttributes().withLabel("s")));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::modEnvSustain, "Mod Env Sustain", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::modEnvRelease, "Mod Env Release", NormalisableRange<float>(0.001f, 5.0f, 0.0f, 0.3f), 0.3f,
+        AudioParameterFloatAttributes().withLabel("s")));
+    // Choice item order must match gexex::ModTarget exactly (ModTarget.h) -- same list LFO 1/2 use.
+    params.push_back(std::make_unique<AudioParameterChoice>(
+        ParamIDs::modEnvTarget, "Mod Env Target",
+        StringArray { "Off", "Pitch (all osc)", "Filter Cutoff", "Filter Resonance", "Amp", "Osc1 Level",
+                       "Osc2 Level", "Osc3 Level", "Osc2 FM Amount", "Osc3 FM Amount", "Delay Time",
+                       "Delay Feedback", "Delay Mix", "Reverb Mix", "Bitcrush Depth", "Bitcrush Downsample",
+                       "Auto-Pan" },
+        0));
+    params.push_back(
+        std::make_unique<AudioParameterFloat>(ParamIDs::modEnvDepth, "Mod Env Depth", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
 
     // Choice item order must match gexex::VoiceMode (Mono, Poly). Defaults
     // to Mono, matching the browser reference's default voice-mode button
@@ -134,6 +188,24 @@ juce::AudioProcessorValueTreeState::ParameterLayout gexex::createParameterLayout
     // Choice item order must match gexex::ModTarget exactly (ModTarget.h).
     params.push_back(std::make_unique<AudioParameterChoice>(
         ParamIDs::lfoTarget, "LFO Target",
+        StringArray { "Off", "Pitch (all osc)", "Filter Cutoff", "Filter Resonance", "Amp", "Osc1 Level",
+                       "Osc2 Level", "Osc3 Level", "Osc2 FM Amount", "Osc3 FM Amount", "Delay Time",
+                       "Delay Feedback", "Delay Mix", "Reverb Mix", "Bitcrush Depth", "Bitcrush Downsample",
+                       "Auto-Pan" },
+        0));
+
+    // --- LFO 2 (independent of LFO 1, same shape/knob set) ---
+    params.push_back(
+        std::make_unique<AudioParameterChoice>(ParamIDs::lfo2Waveform, "LFO 2 Wave", Lfo::waveformChoices(), 0));
+    params.push_back(std::make_unique<AudioParameterChoice>(
+        ParamIDs::lfo2SyncDivision, "LFO 2 Sync", syncDivisionChoices(), 0));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::lfo2RateHz, "LFO 2 Rate", NormalisableRange<float>(0.05f, 20.0f, 0.0f, 0.4f), 2.0f,
+        AudioParameterFloatAttributes().withLabel("Hz")));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::lfo2Depth, "LFO 2 Depth", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
+    params.push_back(std::make_unique<AudioParameterChoice>(
+        ParamIDs::lfo2Target, "LFO 2 Target",
         StringArray { "Off", "Pitch (all osc)", "Filter Cutoff", "Filter Resonance", "Amp", "Osc1 Level",
                        "Osc2 Level", "Osc3 Level", "Osc2 FM Amount", "Osc3 FM Amount", "Delay Time",
                        "Delay Feedback", "Delay Mix", "Reverb Mix", "Bitcrush Depth", "Bitcrush Downsample",
@@ -194,6 +266,45 @@ juce::AudioProcessorValueTreeState::ParameterLayout gexex::createParameterLayout
         ParamIDs::saturatorAmount, "Saturator Amount", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::saturatorCeiling, "Saturator Ceiling", NormalisableRange<float>(0.3f, 1.0f), 1.0f));
+
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::freqShiftHz, "Freq Shift", NormalisableRange<float>(-1000.0f, 1000.0f), 0.0f,
+        AudioParameterFloatAttributes().withLabel("Hz")));
+    params.push_back(
+        std::make_unique<AudioParameterFloat>(ParamIDs::freqShiftMix, "Freq Shift Mix", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
+
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::mbCrossoverLow, "MB Crossover Low", NormalisableRange<float>(40.0f, 2000.0f, 0.0f, 0.35f), 200.0f,
+        AudioParameterFloatAttributes().withLabel("Hz")));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::mbCrossoverHigh, "MB Crossover High", NormalisableRange<float>(500.0f, 12000.0f, 0.0f, 0.3f),
+        2500.0f, AudioParameterFloatAttributes().withLabel("Hz")));
+    params.push_back(
+        std::make_unique<AudioParameterFloat>(ParamIDs::mbAmount, "MB Amount", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::mbLowGain, "MB Low Gain", NormalisableRange<float>(-12.0f, 12.0f), 0.0f,
+        AudioParameterFloatAttributes().withLabel("dB")));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::mbMidGain, "MB Mid Gain", NormalisableRange<float>(-12.0f, 12.0f), 0.0f,
+        AudioParameterFloatAttributes().withLabel("dB")));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::mbHighGain, "MB High Gain", NormalisableRange<float>(-12.0f, 12.0f), 0.0f,
+        AudioParameterFloatAttributes().withLabel("dB")));
+    params.push_back(
+        std::make_unique<AudioParameterFloat>(ParamIDs::mbMix, "MB Mix", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
+
+    // Insert-chain slot assignment -- choice item order must match
+    // gexex::FxSlotEffect exactly (Empty, Drive, Bitcrush, Chorus,
+    // PhaserFlanger, Saturator, FrequencyShifter, MultibandCompressor).
+    // Defaults reproduce the original fixed order across slots 0-4;
+    // slots 5/6 default Empty (room to drop in Freq Shift / Multiband
+    // Comp without removing anything).
+    const StringArray fxSlotChoices { "Empty",         "Drive",     "Bitcrush",          "Chorus",
+                                       "Phaser/Flanger","Saturator", "Frequency Shifter", "Multiband Compressor" };
+    const int fxSlotDefaults[numFxSlots] = { 1, 2, 3, 4, 5, 0, 0 };
+    for (int slot = 0; slot < numFxSlots; ++slot)
+        params.push_back(std::make_unique<AudioParameterChoice>(
+            fxSlotParamID(slot), "FX Slot " + String(slot + 1), fxSlotChoices, fxSlotDefaults[slot]));
 
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::masterVolume, "Master Volume", NormalisableRange<float>(0.0f, 1.0f), 0.8f));

@@ -49,11 +49,27 @@ namespace gexex
         }
 
         {
-            auto& card = addCard("Filter", category++);
+            auto& card = addCard("Sub Osc", category++);
+            card.addCombo(apvts, ParamIDs::subWaveform, "Wave");
+            card.addKnob(apvts, ParamIDs::subOctaveDown, "Octave");
+            card.addKnob(apvts, ParamIDs::subLevel, "Level");
+            card.addToggle(apvts, ParamIDs::subMute, "Mute");
+        }
+
+        {
+            auto& card = addCard("Filter 1", category++);
             card.addCombo(apvts, ParamIDs::filterType, "Type");
+            card.addCombo(apvts, ParamIDs::filterRouting, "Routing");
             card.addKnob(apvts, ParamIDs::filterCutoff, "Cutoff");
             card.addKnob(apvts, ParamIDs::filterResonance, "Res");
             card.addKnob(apvts, ParamIDs::filterVelSens, "Vel>Cut");
+        }
+
+        {
+            auto& card = addCard("Filter 2", category++);
+            card.addCombo(apvts, ParamIDs::filter2Type, "Type");
+            card.addKnob(apvts, ParamIDs::filter2Cutoff, "Cutoff");
+            card.addKnob(apvts, ParamIDs::filter2Resonance, "Res");
         }
 
         // ============================================================
@@ -62,16 +78,33 @@ namespace gexex
         addSection("Modulation", GexexLookAndFeel::categoryColour(category));
 
         {
-            auto& card = addCard("LFO", category);
+            auto& card = addCard("LFO 1", category);
             card.addCombo(apvts, ParamIDs::lfoWaveform, "Wave");
             card.addCombo(apvts, ParamIDs::lfoSyncDivision, "Sync");
             card.addCombo(apvts, ParamIDs::lfoTarget, "Target");
-            lfoShapePreview = std::make_unique<LfoShapePreview>(apvts, ParamIDs::lfoWaveform,
-                                                                  GexexLookAndFeel::categoryColour(category));
+            lfoShapePreview =
+                std::make_unique<LfoShapePreview>(apvts, ParamIDs::lfoWaveform, ParamIDs::lfoDepth,
+                                                    ParamIDs::lfoSyncDivision, ParamIDs::lfoRateHz,
+                                                    GexexLookAndFeel::categoryColour(category));
             card.addCustomComponent(*lfoShapePreview, 44);
             ++category;
             card.addKnob(apvts, ParamIDs::lfoRateHz, "Rate");
             card.addKnob(apvts, ParamIDs::lfoDepth, "Depth");
+        }
+
+        {
+            auto& card = addCard("LFO 2", category);
+            card.addCombo(apvts, ParamIDs::lfo2Waveform, "Wave");
+            card.addCombo(apvts, ParamIDs::lfo2SyncDivision, "Sync");
+            card.addCombo(apvts, ParamIDs::lfo2Target, "Target");
+            lfoShapePreview2 =
+                std::make_unique<LfoShapePreview>(apvts, ParamIDs::lfo2Waveform, ParamIDs::lfo2Depth,
+                                                    ParamIDs::lfo2SyncDivision, ParamIDs::lfo2RateHz,
+                                                    GexexLookAndFeel::categoryColour(category));
+            card.addCustomComponent(*lfoShapePreview2, 44);
+            ++category;
+            card.addKnob(apvts, ParamIDs::lfo2RateHz, "Rate");
+            card.addKnob(apvts, ParamIDs::lfo2Depth, "Depth");
         }
 
         {
@@ -81,6 +114,17 @@ namespace gexex
             envelopeEditor->setAccentColour(GexexLookAndFeel::categoryColour(category));
             ++category;
             card.addCustomComponent(*envelopeEditor, 130);
+        }
+
+        {
+            auto& card = addCard("Mod Envelope", category);
+            modEnvelopeEditor = std::make_unique<EnvelopeEditor>(apvts, ParamIDs::modEnvAttack, ParamIDs::modEnvDecay,
+                                                                    ParamIDs::modEnvSustain, ParamIDs::modEnvRelease);
+            modEnvelopeEditor->setAccentColour(GexexLookAndFeel::categoryColour(category));
+            ++category;
+            card.addCustomComponent(*modEnvelopeEditor, 130);
+            card.addCombo(apvts, ParamIDs::modEnvTarget, "Target");
+            card.addKnob(apvts, ParamIDs::modEnvDepth, "Depth");
         }
 
         {
@@ -100,6 +144,21 @@ namespace gexex
         // Delay/Reverb sends -> Chorus -> Phaser/Flanger -> Saturator).
         // ============================================================
         addSection("Effects", GexexLookAndFeel::categoryColour(category));
+
+        {
+            // The insert chain's execution order/inclusion -- 7 slots, each
+            // independently assignable to any serial effect below (or left
+            // Empty). This is what makes the rack "reorderable": drag isn't
+            // needed when every slot is its own automatable dropdown --
+            // change what runs where by picking a different effect per
+            // slot, same idiom as a lot of rack-style plugins' insert
+            // chains. Delay/Reverb aren't here -- they're parallel sends,
+            // not inserts, and stay at their own fixed point in the signal
+            // flow (see EffectsChain.h's class comment).
+            auto& card = addCard("Signal Chain", category++);
+            for (int slot = 0; slot < numFxSlots; ++slot)
+                card.addCombo(apvts, fxSlotParamID(slot), "Slot " + juce::String(slot + 1));
+        }
 
         {
             auto& card = addCard("Drive", category++);
@@ -149,6 +208,23 @@ namespace gexex
             card.addCombo(apvts, ParamIDs::saturatorAlgorithm, "Algorithm");
             card.addKnob(apvts, ParamIDs::saturatorAmount, "Amount");
             card.addKnob(apvts, ParamIDs::saturatorCeiling, "Ceiling");
+        }
+
+        {
+            auto& card = addCard("Frequency Shifter", category++);
+            card.addKnob(apvts, ParamIDs::freqShiftHz, "Shift");
+            card.addKnob(apvts, ParamIDs::freqShiftMix, "Mix");
+        }
+
+        {
+            auto& card = addCard("Multiband Comp", category++);
+            card.addKnob(apvts, ParamIDs::mbCrossoverLow, "X-Low");
+            card.addKnob(apvts, ParamIDs::mbCrossoverHigh, "X-High");
+            card.addKnob(apvts, ParamIDs::mbAmount, "Amount");
+            card.addKnob(apvts, ParamIDs::mbLowGain, "Low");
+            card.addKnob(apvts, ParamIDs::mbMidGain, "Mid");
+            card.addKnob(apvts, ParamIDs::mbHighGain, "High");
+            card.addKnob(apvts, ParamIDs::mbMix, "Mix");
         }
 
         // ============================================================

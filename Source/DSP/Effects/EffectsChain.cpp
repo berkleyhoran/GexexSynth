@@ -12,6 +12,8 @@ namespace gexex
         chorus.prepare(spec);
         phaserFlanger.prepare(spec);
         saturator.prepare(spec);
+        freqShifter.prepare(spec);
+        multibandComp.prepare(spec);
 
         workBuffer.setSize(2, (int) spec.maximumBlockSize);
         sendBuffer.setSize(2, (int) spec.maximumBlockSize);
@@ -26,6 +28,8 @@ namespace gexex
         chorus.reset();
         phaserFlanger.reset();
         saturator.reset();
+        freqShifter.reset();
+        multibandComp.reset();
     }
 
     void EffectsChain::process(const float* monoIn, juce::AudioBuffer<float>& stereoOut, int destStartSample,
@@ -44,8 +48,25 @@ namespace gexex
         juce::dsp::AudioBlock<float> workBlock(workBuffer);
         auto trimmedBlock = workBlock.getSubBlock(0, (size_t) numSamples);
 
-        drive.process(trimmedBlock);
-        bitcrusher.processBlock(workBuffer, numSamples);
+        // The reorderable insert chain: each of the 7 slots independently
+        // picks which effect (if any) runs there, executed in slot order
+        // -- see the class comment on how this replaces the old fixed
+        // Drive->Bitcrush->Chorus->Phaser/Flanger->Saturator sequence.
+        for (auto slotEffect : slotEffects)
+        {
+            switch (slotEffect)
+            {
+                case FxSlotEffect::Drive: drive.process(trimmedBlock); break;
+                case FxSlotEffect::Bitcrush: bitcrusher.processBlock(workBuffer, numSamples); break;
+                case FxSlotEffect::Chorus: chorus.process(trimmedBlock); break;
+                case FxSlotEffect::PhaserFlanger: phaserFlanger.process(trimmedBlock); break;
+                case FxSlotEffect::Saturator: saturator.process(trimmedBlock); break;
+                case FxSlotEffect::FrequencyShifter: freqShifter.process(trimmedBlock); break;
+                case FxSlotEffect::MultibandCompressor: multibandComp.process(trimmedBlock); break;
+                case FxSlotEffect::Empty:
+                default: break;
+            }
+        }
 
         // Delay and reverb are parallel sends (see the class comment), not
         // serial inserts: process a *copy* of the current bus through
@@ -75,9 +96,6 @@ namespace gexex
             workBuffer.addFrom(1, 0, sendBuffer, 1, 0, numSamples, reverbMix);
         }
 
-        chorus.process(trimmedBlock);
-        phaserFlanger.process(trimmedBlock);
-        saturator.process(trimmedBlock);
         masterBus.process(trimmedBlock);
 
         for (int ch = 0; ch < juce::jmin(2, stereoOut.getNumChannels()); ++ch)

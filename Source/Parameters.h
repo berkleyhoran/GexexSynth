@@ -16,10 +16,30 @@ namespace gexex
         static constexpr auto filterCutoff = "filterCutoff";
         static constexpr auto filterResonance = "filterResonance";
         static constexpr auto filterVelSens = "filterVelSens";
+
+        // Filter 2 + routing: a second filter, off by default (routing ==
+        // Filter1Only), that can be chained in series after filter 1 or
+        // run in parallel with it.
+        static constexpr auto filterRouting = "filterRouting";
+        static constexpr auto filter2Type = "filter2Type";
+        static constexpr auto filter2Cutoff = "filter2Cutoff";
+        static constexpr auto filter2Resonance = "filter2Resonance";
+
         static constexpr auto envAttack = "envAttack";
         static constexpr auto envDecay = "envDecay";
         static constexpr auto envSustain = "envSustain";
         static constexpr auto envRelease = "envRelease";
+
+        // A second, independently-routable envelope (same ModTarget list
+        // the LFOs use) for filter/pitch/etc. sweeps that need an ADSR
+        // shape rather than a cycling LFO. Unlike the amp envelope, it's
+        // not per-voice -- see SynthEngine.h's ModEnvelope note.
+        static constexpr auto modEnvAttack = "modEnvAttack";
+        static constexpr auto modEnvDecay = "modEnvDecay";
+        static constexpr auto modEnvSustain = "modEnvSustain";
+        static constexpr auto modEnvRelease = "modEnvRelease";
+        static constexpr auto modEnvTarget = "modEnvTarget";
+        static constexpr auto modEnvDepth = "modEnvDepth";
 
         static constexpr auto voiceMode = "voiceMode";
         static constexpr auto glideTime = "glideTime";
@@ -30,6 +50,16 @@ namespace gexex
         static constexpr auto noiseType = "noiseType";
         static constexpr auto noiseLevel = "noiseLevel";
         static constexpr auto noiseMute = "noiseMute";
+
+        // Sub-oscillator: a 4th sound source pitched a selectable octave
+        // (or two) below the voice's root note -- reuses the same
+        // Waveform enum/choice list as osc1-3 (see createParameterLayout)
+        // rather than a smaller bespoke set, so its index still casts
+        // straight to gexex::Waveform like everywhere else.
+        static constexpr auto subWaveform = "subWaveform";
+        static constexpr auto subOctaveDown = "subOctaveDown";
+        static constexpr auto subLevel = "subLevel";
+        static constexpr auto subMute = "subMute";
 
         static constexpr auto arpEnabled = "arpEnabled";
         static constexpr auto arpPattern = "arpPattern";
@@ -43,6 +73,15 @@ namespace gexex
         static constexpr auto lfoRateHz = "lfoRateHz";
         static constexpr auto lfoDepth = "lfoDepth";
         static constexpr auto lfoTarget = "lfoTarget";
+
+        // A second, independent LFO -- same shape/rate/depth/target
+        // controls as LFO 1, resolved and summed alongside it and the mod
+        // envelope (see PluginProcessor::updateEngineParameters' modFor()).
+        static constexpr auto lfo2Waveform = "lfo2Waveform";
+        static constexpr auto lfo2SyncDivision = "lfo2SyncDivision";
+        static constexpr auto lfo2RateHz = "lfo2RateHz";
+        static constexpr auto lfo2Depth = "lfo2Depth";
+        static constexpr auto lfo2Target = "lfo2Target";
 
         static constexpr auto crushBits = "crushBits";
         static constexpr auto crushDownsample = "crushDownsample";
@@ -70,6 +109,34 @@ namespace gexex
         static constexpr auto saturatorAmount = "saturatorAmount";
         static constexpr auto saturatorCeiling = "saturatorCeiling";
 
+        static constexpr auto freqShiftHz = "freqShiftHz";
+        static constexpr auto freqShiftMix = "freqShiftMix";
+
+        static constexpr auto mbCrossoverLow = "mbCrossoverLow";
+        static constexpr auto mbCrossoverHigh = "mbCrossoverHigh";
+        static constexpr auto mbAmount = "mbAmount";
+        static constexpr auto mbLowGain = "mbLowGain";
+        static constexpr auto mbMidGain = "mbMidGain";
+        static constexpr auto mbHighGain = "mbHighGain";
+        static constexpr auto mbMix = "mbMix";
+
+        // The insert chain's execution order/inclusion -- 7 slots, each an
+        // independent choice of which serial effect (if any) runs there,
+        // read in slot order by EffectsChain::process(). Defaults replicate
+        // the original fixed Drive->Bitcrush->Chorus->Phaser/Flanger->
+        // Saturator order exactly (slots 5/6 default Empty), so existing
+        // presets -- which don't reference these params -- still land on
+        // the same effect order via initPatch(). Delay/Reverb aren't slot
+        // effects: they stay fixed parallel sends, now applied once right
+        // after the whole slot chain (see EffectsChain.cpp's comment).
+        static constexpr auto fxSlot0 = "fxSlot0";
+        static constexpr auto fxSlot1 = "fxSlot1";
+        static constexpr auto fxSlot2 = "fxSlot2";
+        static constexpr auto fxSlot3 = "fxSlot3";
+        static constexpr auto fxSlot4 = "fxSlot4";
+        static constexpr auto fxSlot5 = "fxSlot5";
+        static constexpr auto fxSlot6 = "fxSlot6";
+
         static constexpr auto masterVolume = "masterVolume";
         static constexpr auto masterPan = "masterPan";
 
@@ -96,11 +163,17 @@ namespace gexex
     // is 1-based (1, 2, 3), matching the reference UI's "Osc 1/2/3" naming.
     juce::String oscParamID(int oscNumber, const juce::String& suffix);
 
+    // fxSlotParamID(0..6) -> ParamIDs::fxSlot0..fxSlot6, so EffectsChain and
+    // ModuleRack can loop over all 7 slots instead of hand-typing each one.
+    static constexpr int numFxSlots = 7;
+    const char* fxSlotParamID(int slotIndex) noexcept;
+
     // Every choice parameter's item order matches its corresponding enum
     // exactly: Waveform (PolyBlepOscillator.h), NoiseType (NoiseGenerator.h),
-    // VoiceMode (SynthEngine.h), ArpPattern (Arpeggiator.h), SyncDivision
-    // (TempoSync.h), LfoWaveform / ModTarget (Lfo.h / ModTarget.h),
-    // PhaserFlangerMode / SaturatorAlgorithm (Effects/*.h) -- callers read a
-    // choice's getIndex() and static_cast it straight to the enum.
+    // FilterRouting (Voice.h), VoiceMode (SynthEngine.h), ArpPattern
+    // (Arpeggiator.h), SyncDivision (TempoSync.h), LfoWaveform / ModTarget
+    // (Lfo.h / ModTarget.h), PhaserFlangerMode / SaturatorAlgorithm /
+    // FxSlotEffect (Effects/*.h) -- callers read a choice's getIndex() and
+    // static_cast it straight to the enum.
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 }

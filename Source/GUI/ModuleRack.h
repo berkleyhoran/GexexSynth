@@ -50,9 +50,11 @@ namespace gexex
         juce::OwnedArray<ModuleCard> cards;
         juce::OwnedArray<SectionHeader> sectionHeaders;
         std::unique_ptr<EnvelopeEditor> envelopeEditor;
+        std::unique_ptr<EnvelopeEditor> modEnvelopeEditor;
         std::unique_ptr<ReverbVisual> reverbVisual;
         std::unique_ptr<DelayVisual> delayVisual;
         std::unique_ptr<LfoShapePreview> lfoShapePreview;
+        std::unique_ptr<LfoShapePreview> lfoShapePreview2;
         juce::OwnedArray<Scope> scopes;
 
         static constexpr int cardWidth = 220;

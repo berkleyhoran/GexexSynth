@@ -28,9 +28,16 @@ namespace gexex
     class LfoShapePreview : public juce::Component, private juce::Timer
     {
     public:
+        // depthParamID/syncDivisionParamID/rateHzParamID are passed in
+        // explicitly (rather than hardcoded to LFO 1's IDs) so this one
+        // class serves both LFOs -- ModuleRack constructs a second
+        // instance pointed at the lfo2* param IDs.
         LfoShapePreview(juce::AudioProcessorValueTreeState& apvtsToUse, juce::String waveformParamID,
+                         juce::String depthParamID, juce::String syncDivisionParamID, juce::String rateHzParamID,
                          juce::Colour lineColour)
-            : apvts(apvtsToUse), paramID(std::move(waveformParamID)), colour(lineColour)
+            : apvts(apvtsToUse), waveformParamID(std::move(waveformParamID)), depthParamID(std::move(depthParamID)),
+              syncDivisionParamID(std::move(syncDivisionParamID)), rateHzParamID(std::move(rateHzParamID)),
+              colour(lineColour)
         {
             startTimerHz(24);
         }
@@ -41,8 +48,8 @@ namespace gexex
             g.setColour(juce::Colours::white.withAlpha(0.55f));
             g.fillRoundedRectangle(bounds, 6.0f);
 
-            const int waveIndex = (int) apvts.getRawParameterValue(paramID)->load();
-            const float depth = apvts.getRawParameterValue(ParamIDs::lfoDepth)->load();
+            const int waveIndex = (int) apvts.getRawParameterValue(waveformParamID)->load();
+            const float depth = apvts.getRawParameterValue(depthParamID)->load();
             const float midY = bounds.getCentreY();
             const float amp = bounds.getHeight() * 0.4f * juce::jlimit(0.06f, 1.0f, depth); // never fully flat-line invisible
 
@@ -75,8 +82,8 @@ namespace gexex
     private:
         float currentRateHz() const noexcept
         {
-            const auto division = (SyncDivision) (int) apvts.getRawParameterValue(ParamIDs::lfoSyncDivision)->load();
-            const float freeHz = apvts.getRawParameterValue(ParamIDs::lfoRateHz)->load();
+            const auto division = (SyncDivision) (int) apvts.getRawParameterValue(syncDivisionParamID)->load();
+            const float freeHz = apvts.getRawParameterValue(rateHzParamID)->load();
             return resolveRateHz(division, freeHz, 120.0); // no host clock available from the GUI thread here
         }
 
@@ -100,7 +107,7 @@ namespace gexex
         }
 
         juce::AudioProcessorValueTreeState& apvts;
-        juce::String paramID;
+        juce::String waveformParamID, depthParamID, syncDivisionParamID, rateHzParamID;
         juce::Colour colour;
         float phase = 0.0f;
     };

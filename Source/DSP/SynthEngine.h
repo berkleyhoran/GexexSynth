@@ -29,11 +29,16 @@ namespace gexex
         void setVoiceMode(VoiceMode mode) noexcept { voiceMode = mode; }
         void setOscillatorSettings(int oscIndex, const OscillatorSettings& settings) noexcept;
         void setNoiseSettings(const NoiseSettings& settings) noexcept;
+        void setSubOscSettings(const SubOscSettings& settings) noexcept;
         void setFmAmount(int modulatorIndex, float amount) noexcept;
         void setFilterCutoffHz(float hz) noexcept;
         void setFilterResonance(float resonance) noexcept;
         void setFilterType(juce::dsp::StateVariableTPTFilterType type) noexcept;
         void setFilterVelocitySensitivity(float sensitivity) noexcept;
+        void setFilterRouting(FilterRouting routing) noexcept;
+        void setFilter2CutoffHz(float hz) noexcept;
+        void setFilter2Resonance(float resonance) noexcept;
+        void setFilter2Type(juce::dsp::StateVariableTPTFilterType type) noexcept;
         void setEnvelopeParameters(const juce::ADSR::Parameters& params) noexcept;
         void setGlideTimeSeconds(float seconds) noexcept;
         void setPitchModSemitones(float semitones) noexcept;
