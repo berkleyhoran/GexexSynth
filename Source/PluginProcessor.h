@@ -2,14 +2,12 @@
 
 #include <JuceHeader.h>
 #include "Parameters.h"
-#include "DSP/Voice.h"
+#include "DSP/SynthEngine.h"
 
-// Phase 1: a hard-coded mono voice (PolyBLEP saw -> TPT filter -> ADSR)
-// driven straight from MIDI, with a minimal set of APVTS parameters
-// (cutoff, resonance, ADSR) and JUCE's built-in generic editor -- proves
-// the core DSP path sounds right before Phase 2 adds the full oscillator
-// set, FM, voice pool, and arpeggiator, and Phase 4 replaces the editor
-// with the real "fruity aero" GUI.
+// Phase 2: the full 3-oscillator/FM engine with a real poly voice pool,
+// mono/poly + legato/glide, and the arpeggiator, still driven straight from
+// MIDI with JUCE's built-in generic editor (no effects chain yet -- that's
+// Phase 3 -- and no custom GUI yet -- that's Phase 4).
 class GexexSynthAudioProcessor : public juce::AudioProcessor
 {
 public:
@@ -42,10 +40,17 @@ public:
     juce::AudioProcessorValueTreeState apvts { *this, nullptr, "PARAMETERS", gexex::createParameterLayout() };
 
 private:
+    // Reads the current APVTS values and pushes them into synthEngine --
+    // called once per block rather than per-sample (control-rate is plenty
+    // for these; the audio-rate stuff -- oscillator phase, filter
+    // coefficients, envelope -- happens inside Voice::renderNextSample).
+    void updateEngineParameters() noexcept;
     void renderVoiceBlock(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept;
 
-    gexex::Voice voice;
-    int currentNote = -1;
+    float getFloatParam(const char* paramID) const noexcept { return apvts.getRawParameterValue(paramID)->load(); }
+    int getChoiceIndex(const char* paramID) const noexcept { return (int) getFloatParam(paramID); }
+
+    gexex::SynthEngine synthEngine;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GexexSynthAudioProcessor)
 };

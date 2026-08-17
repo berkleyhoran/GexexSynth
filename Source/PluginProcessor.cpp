@@ -22,7 +22,44 @@ void GexexSynthAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     const juce::dsp::ProcessSpec spec { sampleRate,
                                          (juce::uint32) samplesPerBlock,
                                          (juce::uint32) getTotalNumOutputChannels() };
-    voice.prepare(spec);
+    synthEngine.prepare(spec);
+}
+
+void GexexSynthAudioProcessor::updateEngineParameters() noexcept
+{
+    using namespace gexex;
+
+    for (int oscNumber = 1; oscNumber <= 3; ++oscNumber)
+    {
+        OscillatorSettings settings;
+        settings.waveform = (Waveform) getChoiceIndex(oscParamID(oscNumber, ParamIDs::oscWaveSuffix).toRawUTF8());
+        settings.pulseWidth = getFloatParam(oscParamID(oscNumber, ParamIDs::oscPulseWidthSuffix).toRawUTF8());
+        settings.fold = getFloatParam(oscParamID(oscNumber, ParamIDs::oscFoldSuffix).toRawUTF8());
+        settings.octave = (int) getFloatParam(oscParamID(oscNumber, ParamIDs::oscOctaveSuffix).toRawUTF8());
+        settings.semitone = (int) getFloatParam(oscParamID(oscNumber, ParamIDs::oscSemitoneSuffix).toRawUTF8());
+        settings.fineCents = getFloatParam(oscParamID(oscNumber, ParamIDs::oscFineSuffix).toRawUTF8());
+        settings.level = getFloatParam(oscParamID(oscNumber, ParamIDs::oscLevelSuffix).toRawUTF8());
+        settings.muted = getFloatParam(oscParamID(oscNumber, ParamIDs::oscMuteSuffix).toRawUTF8()) >= 0.5f;
+        synthEngine.setOscillatorSettings(oscNumber - 1, settings);
+    }
+
+    synthEngine.setFmAmount(0, getFloatParam(ParamIDs::fmAmount2));
+    synthEngine.setFmAmount(1, getFloatParam(ParamIDs::fmAmount3));
+
+    synthEngine.setFilterCutoffHz(getFloatParam(ParamIDs::filterCutoff));
+    synthEngine.setFilterResonance(getFloatParam(ParamIDs::filterResonance));
+
+    synthEngine.setEnvelopeParameters({ getFloatParam(ParamIDs::envAttack), getFloatParam(ParamIDs::envDecay),
+                                         getFloatParam(ParamIDs::envSustain), getFloatParam(ParamIDs::envRelease) });
+
+    synthEngine.setVoiceMode((VoiceMode) getChoiceIndex(ParamIDs::voiceMode));
+    synthEngine.setGlideTimeSeconds(getFloatParam(ParamIDs::glideTime));
+
+    synthEngine.setArpEnabled(getFloatParam(ParamIDs::arpEnabled) >= 0.5f);
+    synthEngine.setArpPattern((ArpPattern) getChoiceIndex(ParamIDs::arpPattern));
+    synthEngine.setArpOctaveRange((int) getFloatParam(ParamIDs::arpOctaveRange));
+    synthEngine.setArpRateHz(getFloatParam(ParamIDs::arpRateHz));
+    synthEngine.setArpGate(getFloatParam(ParamIDs::arpGate));
 }
 
 void GexexSynthAudioProcessor::renderVoiceBlock(juce::AudioBuffer<float>& buffer, int startSample,
@@ -34,7 +71,7 @@ void GexexSynthAudioProcessor::renderVoiceBlock(juce::AudioBuffer<float>& buffer
     const auto numChannels = buffer.getNumChannels();
     for (int i = 0; i < numSamples; ++i)
     {
-        const float sample = voice.renderNextSample();
+        const float sample = synthEngine.renderNextSample();
         for (int channel = 0; channel < numChannels; ++channel)
             buffer.setSample(channel, startSample + i, sample);
     }
@@ -45,51 +82,24 @@ void GexexSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
 
-    voice.setFilterCutoffHz(apvts.getRawParameterValue(gexex::ParamIDs::filterCutoff)->load());
-    voice.setFilterResonance(apvts.getRawParameterValue(gexex::ParamIDs::filterResonance)->load());
-    voice.setEnvelopeParameters({ apvts.getRawParameterValue(gexex::ParamIDs::envAttack)->load(),
-                                   apvts.getRawParameterValue(gexex::ParamIDs::envDecay)->load(),
-                                   apvts.getRawParameterValue(gexex::ParamIDs::envSustain)->load(),
-                                   apvts.getRawParameterValue(gexex::ParamIDs::envRelease)->load() });
+    updateEngineParameters();
 
     int samplePos = 0;
-
     for (const auto metadata : midi)
     {
         renderVoiceBlock(buffer, samplePos, metadata.samplePosition - samplePos);
         samplePos = metadata.samplePosition;
-
-        const auto message = metadata.getMessage();
-        if (message.isNoteOn())
-        {
-            currentNote = message.getNoteNumber();
-            voice.setFrequencyFromMidiNote(currentNote);
-            voice.noteOn();
-        }
-        else if (message.isNoteOff())
-        {
-            if (message.getNoteNumber() == currentNote)
-            {
-                voice.noteOff();
-                currentNote = -1;
-            }
-        }
-        else if (message.isAllNotesOff() || message.isAllSoundOff())
-        {
-            voice.noteOff();
-            currentNote = -1;
-        }
+        synthEngine.handleMidiEvent(metadata.getMessage());
     }
-
     renderVoiceBlock(buffer, samplePos, buffer.getNumSamples() - samplePos);
 }
 
 juce::AudioProcessorEditor* GexexSynthAudioProcessor::createEditor()
 {
-    // Placeholder editor: auto-builds a slider per APVTS parameter, so
-    // every knob Phase 1 adds is immediately playable/automatable without
-    // hand-building a GUI for it. Phase 4 replaces this with the real
-    // "fruity aero" ModuleRack + custom LookAndFeel.
+    // Placeholder editor: auto-builds a slider/combo/toggle per APVTS
+    // parameter, so every knob Phase 2 adds is immediately playable/
+    // automatable without hand-building a GUI for it. Phase 4 replaces
+    // this with the real "fruity aero" ModuleRack + custom LookAndFeel.
     return new juce::GenericAudioProcessorEditor(*this);
 }
 
