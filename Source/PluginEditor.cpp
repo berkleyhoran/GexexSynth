@@ -51,8 +51,8 @@ void GexexSynthAudioProcessorEditor::resized()
     auto bounds = getLocalBounds();
 
     constexpr int keyboardHeight = 130;
-    constexpr int stripOverlapIntoRack = 110;   // grass's transparent blade tips reach up over the cards
-    constexpr int stripOverlapIntoKeyboard = 28; // grass's solid base dips slightly over the keys' top edge
+    constexpr int stripOverlapIntoRack = 46;    // grass's transparent blade tips reach up over the cards
+    constexpr int stripOverlapIntoKeyboard = 14; // grass's solid base dips slightly over the keys' top edge
     constexpr int stripHeight = stripOverlapIntoRack + stripOverlapIntoKeyboard;
 
     keyboard.setBounds(bounds.removeFromBottom(keyboardHeight));

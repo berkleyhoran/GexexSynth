@@ -15,9 +15,9 @@ namespace gexex
         // randomized left%/size/duration/delay), continuously recycled by
         // computing position from elapsed-time-modulo-cycle rather than
         // integrating per-frame state -- deterministic, no drift.
-        for (int i = 0; i < 9; ++i)
+        for (int i = 0; i < 7; ++i)
         {
-            bubbles.push_back({ random.nextFloat(), 18.0f + random.nextFloat() * 34.0f,
+            bubbles.push_back({ random.nextFloat(), 8.0f + random.nextFloat() * 14.0f,
                                  11.0f + random.nextFloat() * 10.0f, random.nextFloat() * 20.0f });
         }
 

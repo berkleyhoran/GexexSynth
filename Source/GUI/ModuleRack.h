@@ -58,5 +58,6 @@ namespace gexex
         static constexpr int cardWidth = 220;
         static constexpr int cardGap = 10;
         static constexpr int sectionHeaderHeight = 30;
+        static constexpr int bottomScrollPadding = 90; // clears PerformanceStrip's grass overlap when scrolled down
     };
 }

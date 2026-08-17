@@ -38,7 +38,7 @@ namespace gexex
 
         void paint(juce::Graphics& g) override
         {
-            auto bounds = getLocalBounds().toFloat().reduced(10.0f, 6.0f);
+            auto bounds = getGraphBounds();
 
             g.setColour(juce::Colours::white.withAlpha(0.5f));
             g.fillRoundedRectangle(getLocalBounds().toFloat(), 8.0f);
@@ -90,7 +90,7 @@ namespace gexex
 
         void mouseMove(const juce::MouseEvent& e) override
         {
-            const auto points = computePoints(getLocalBounds().toFloat().reduced(10.0f, 6.0f));
+            const auto points = computePoints(getGraphBounds());
             const auto newHover = hitTest(e.position, points);
             if (newHover != hoveredHandle)
             {
@@ -103,7 +103,7 @@ namespace gexex
 
         void mouseDown(const juce::MouseEvent& e) override
         {
-            const auto points = computePoints(getLocalBounds().toFloat().reduced(10.0f, 6.0f));
+            const auto points = computePoints(getGraphBounds());
             draggingHandle = hitTest(e.position, points);
             if (draggingHandle == Handle::None)
                 return;
@@ -126,7 +126,7 @@ namespace gexex
             if (draggingHandle == Handle::None)
                 return;
 
-            const auto bounds = getLocalBounds().toFloat().reduced(10.0f, 6.0f);
+            const auto bounds = getGraphBounds();
             const float attackW = bounds.getWidth() * attackFraction;
             const float decayW = bounds.getWidth() * decayFraction;
             const float releaseW = bounds.getWidth() * releaseFraction;
@@ -204,6 +204,20 @@ namespace gexex
         static float getParamNormalized(juce::RangedAudioParameter* p)
         {
             return p != nullptr ? p->getValue() : 0.0f;
+        }
+
+        // The plotted curve's own rectangle, with a strip reserved at the
+        // bottom for the "A"/"D"/"R" labels -- they used to be drawn at
+        // graphBounds.getBottom()+1..+13, which fell outside the
+        // component's own height (JUCE clips child painting to its
+        // bounds), so they were getting silently cut off. Reserving the
+        // room here instead means the curve itself is a little shorter,
+        // but the labels it's captioned by are actually visible.
+        juce::Rectangle<float> getGraphBounds() const
+        {
+            auto bounds = getLocalBounds().toFloat().reduced(10.0f, 6.0f);
+            bounds.removeFromBottom(14.0f);
+            return bounds;
         }
 
         Points computePoints(juce::Rectangle<float> bounds) const

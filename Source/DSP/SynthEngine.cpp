@@ -16,6 +16,12 @@ namespace gexex
             v.setOscillatorSettings(oscIndex, settings);
     }
 
+    void SynthEngine::setNoiseSettings(const NoiseSettings& settings) noexcept
+    {
+        for (auto& v : voices)
+            v.setNoiseSettings(settings);
+    }
+
     void SynthEngine::setFmAmount(int modulatorIndex, float amount) noexcept
     {
         for (auto& v : voices)

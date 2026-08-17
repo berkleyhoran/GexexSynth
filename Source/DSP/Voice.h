@@ -5,6 +5,7 @@
 #include <juce_dsp/juce_dsp.h>
 #include "PolyBlepOscillator.h"
 #include "Pitch.h"
+#include "NoiseGenerator.h"
 
 namespace gexex
 {
@@ -17,6 +18,13 @@ namespace gexex
         int semitone = 0;
         float fineCents = 0.0f;
         float level = 0.6f;
+        bool muted = false;
+    };
+
+    struct NoiseSettings
+    {
+        NoiseType type = NoiseType::White;
+        float level = 0.0f; // defaults silent, like osc2/3 -- raising it is all it takes to bring noise in
         bool muted = false;
     };
 
@@ -51,6 +59,8 @@ namespace gexex
             jassert(oscIndex >= 0 && oscIndex < 3);
             oscSettings[(size_t) oscIndex] = settings;
         }
+
+        void setNoiseSettings(const NoiseSettings& settings) noexcept { noiseSettings = settings; }
 
         // amount: 0..1, osc2->osc1 (index 0) or osc3->osc1 (index 1).
         void setFmAmount(int modulatorIndex, float amount) noexcept
@@ -172,6 +182,12 @@ namespace gexex
                                            : PolyBlepOscillator::waveFold(osc3Raw, oscSettings[2].fold)
                                                  * oscSettings[2].level;
 
+            // Noise: a 4th, unpitched sound source mixed in alongside the
+            // oscillators -- rendered every sample the voice is active so
+            // it rides the same filter/envelope, same as a real analog
+            // noise generator would.
+            mixed += noiseSettings.muted ? 0.0f : noiseGenerator.renderSample(noiseSettings.type) * noiseSettings.level;
+
             const float filtered = filter.processSample(0, mixed);
             const float output = filtered * envelope.getNextSample();
 
@@ -207,6 +223,8 @@ namespace gexex
         std::array<PolyBlepOscillator, 3> oscillators;
         std::array<OscillatorSettings, 3> oscSettings;
         std::array<float, 2> fmAmount { 0.0f, 0.0f };
+        NoiseGenerator noiseGenerator;
+        NoiseSettings noiseSettings;
 
         juce::dsp::StateVariableTPTFilter<float> filter;
         juce::ADSR envelope;

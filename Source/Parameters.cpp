@@ -67,6 +67,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout gexex::createParameterLayout
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::fmAmount3, "FM Osc3->Osc1", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
 
+    // Choice item order must match gexex::NoiseType exactly (White, Pink, Brown).
+    params.push_back(std::make_unique<AudioParameterChoice>(
+        ParamIDs::noiseType, "Noise Type", StringArray { "White", "Pink", "Brown" }, 0));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::noiseLevel, "Noise Level", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
+    params.push_back(std::make_unique<AudioParameterBool>(ParamIDs::noiseMute, "Noise Mute", false));
+
     // Choice item order matches juce::dsp::StateVariableTPTFilterType exactly
     // (Lowpass, Bandpass, Highpass) so the index casts straight across.
     params.push_back(std::make_unique<AudioParameterChoice>(

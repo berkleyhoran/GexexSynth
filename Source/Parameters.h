@@ -27,6 +27,10 @@ namespace gexex
         static constexpr auto fmAmount2 = "fmAmount2"; // osc2 -> osc1
         static constexpr auto fmAmount3 = "fmAmount3"; // osc3 -> osc1
 
+        static constexpr auto noiseType = "noiseType";
+        static constexpr auto noiseLevel = "noiseLevel";
+        static constexpr auto noiseMute = "noiseMute";
+
         static constexpr auto arpEnabled = "arpEnabled";
         static constexpr auto arpPattern = "arpPattern";
         static constexpr auto arpOctaveRange = "arpOctaveRange";
@@ -93,10 +97,10 @@ namespace gexex
     juce::String oscParamID(int oscNumber, const juce::String& suffix);
 
     // Every choice parameter's item order matches its corresponding enum
-    // exactly: Waveform (PolyBlepOscillator.h), VoiceMode (SynthEngine.h),
-    // ArpPattern (Arpeggiator.h), SyncDivision (TempoSync.h), LfoWaveform /
-    // ModTarget (Lfo.h / ModTarget.h), PhaserFlangerMode / SaturatorAlgorithm
-    // (Effects/*.h) -- callers read a choice's getIndex() and static_cast
-    // it straight to the enum.
+    // exactly: Waveform (PolyBlepOscillator.h), NoiseType (NoiseGenerator.h),
+    // VoiceMode (SynthEngine.h), ArpPattern (Arpeggiator.h), SyncDivision
+    // (TempoSync.h), LfoWaveform / ModTarget (Lfo.h / ModTarget.h),
+    // PhaserFlangerMode / SaturatorAlgorithm (Effects/*.h) -- callers read a
+    // choice's getIndex() and static_cast it straight to the enum.
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 }

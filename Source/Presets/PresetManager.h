@@ -28,8 +28,8 @@ namespace gexex
     class PresetManager
     {
     public:
-        // Twenty hand-authored patches across five categories (Pads,
-        // Leads, Keys, Bass, Ambient), all leaning into the same
+        // Forty-two hand-authored patches across six categories (Pads,
+        // Leads, Keys, Bass, Ambient, Textures), all leaning into the same
         // melancholy/reverby/dreamy character -- see PresetManager.cpp
         // for the full list.
         static const std::vector<FactoryPreset>& getFactoryPresets();

@@ -6,7 +6,6 @@ namespace gexex
     PerformanceStrip::PerformanceStrip(const ScopeDataSource<>& masterScopeSource) : scopeSource(masterScopeSource)
     {
         grassImage = juce::ImageFileFormat::loadFrom(BinaryData::grass_png, (size_t) BinaryData::grass_pngSize);
-        daisyImage = juce::ImageFileFormat::loadFrom(BinaryData::daisy_png, (size_t) BinaryData::daisy_pngSize);
         setInterceptsMouseClicks(false, false);
         startTimerHz(30);
     }
@@ -39,25 +38,6 @@ namespace gexex
         // band fighting the image's own transparency.
         drawTiledLayer(g, grassImage, bounds);
 
-        // Mirrored daisies anchored low, in the solid/opaque part of the
-        // grass near the bottom rather than centered in the tall strip.
-        if (daisyImage.isValid())
-        {
-            const int daisyW = juce::jmin(110, bounds.getWidth() / 10);
-            const int daisyH = (int) (daisyW * (float) daisyImage.getHeight() / (float) daisyImage.getWidth());
-            const int daisyY = bounds.getBottom() - daisyH - (int) (bounds.getHeight() * 0.06f);
-
-            g.drawImage(daisyImage, 6, daisyY, daisyW, daisyH, 0, 0, daisyImage.getWidth(), daisyImage.getHeight());
-
-            const float scaleX = (float) daisyW / (float) daisyImage.getWidth();
-            const float scaleY = (float) daisyH / (float) daisyImage.getHeight();
-            const float targetRight = (float) (bounds.getRight() - 6);
-            auto flip = juce::AffineTransform::scale(scaleX, scaleY)
-                            .followedBy(juce::AffineTransform::scale(-1.0f, 1.0f))
-                            .followedBy(juce::AffineTransform::translation(targetRight, (float) daisyY));
-            g.drawImageTransformed(daisyImage, flip);
-        }
-
         // The glowing master trace, floating in the upper (transparent-
         // blade-tip) zone so it reads as hovering just above the grass
         // rather than buried in the dense lower half.
@@ -85,13 +65,19 @@ namespace gexex
                 path.lineTo(x, y);
         }
 
-        // Soft wide glow behind a bright core stroke -- glow alpha/width
-        // scale with the recent peak, so a held chord visibly blooms.
-        g.setColour(juce::Colours::white.withAlpha(juce::jlimit(0.05f, 0.55f, 0.1f + peak * 0.55f)));
-        g.strokePath(path, juce::PathStrokeType(5.5f + peak * 5.0f, juce::PathStrokeType::curved,
-                                                  juce::PathStrokeType::rounded));
-        g.setColour(juce::Colour(0xff2aa9c9));
-        g.strokePath(path, juce::PathStrokeType(2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        // Soft wide glow behind a bright core stroke -- both fade all the
+        // way to (near-)invisible at silence and bloom in with the recent
+        // peak, so nothing reads as a static bar floating over the grass
+        // when nothing's playing.
+        if (peak > 0.003f)
+        {
+            g.setColour(juce::Colours::white.withAlpha(juce::jlimit(0.0f, 0.5f, peak * 0.6f)));
+            g.strokePath(path, juce::PathStrokeType(5.5f + peak * 5.0f, juce::PathStrokeType::curved,
+                                                      juce::PathStrokeType::rounded));
+            g.setColour(juce::Colour(0xff2aa9c9).withAlpha(juce::jlimit(0.0f, 1.0f, 0.15f + peak * 1.6f)));
+            g.strokePath(path,
+                         juce::PathStrokeType(2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        }
     }
 
     void PerformanceStrip::timerCallback()

@@ -42,6 +42,13 @@ namespace gexex
         }
 
         {
+            auto& card = addCard("Noise", category++);
+            card.addCombo(apvts, ParamIDs::noiseType, "Type");
+            card.addKnob(apvts, ParamIDs::noiseLevel, "Level");
+            card.addToggle(apvts, ParamIDs::noiseMute, "Mute");
+        }
+
+        {
             auto& card = addCard("Filter", category++);
             card.addCombo(apvts, ParamIDs::filterType, "Type");
             card.addKnob(apvts, ParamIDs::filterCutoff, "Cutoff");
@@ -259,7 +266,12 @@ namespace gexex
             y += row.height + cardGap;
         }
 
-        content.setSize(rowSpanWidth, y);
+        // Extra room below the last row -- PerformanceStrip is a fixed
+        // overlay docked at the window's bottom (outside this viewport),
+        // and its grass overlaps ~46px up into the rack area. Without this,
+        // scrolling all the way down tucks the last row's cards behind the
+        // grass instead of clearing it.
+        content.setSize(rowSpanWidth, y + bottomScrollPadding);
     }
 
     void ModuleRack::resized()

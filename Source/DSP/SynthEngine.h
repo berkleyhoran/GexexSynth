@@ -28,6 +28,7 @@ namespace gexex
 
         void setVoiceMode(VoiceMode mode) noexcept { voiceMode = mode; }
         void setOscillatorSettings(int oscIndex, const OscillatorSettings& settings) noexcept;
+        void setNoiseSettings(const NoiseSettings& settings) noexcept;
         void setFmAmount(int modulatorIndex, float amount) noexcept;
         void setFilterCutoffHz(float hz) noexcept;
         void setFilterResonance(float resonance) noexcept;

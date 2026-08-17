@@ -58,6 +58,14 @@ void GexexSynthAudioProcessor::updateEngineParameters(int blockNumSamples) noexc
         synthEngine.setOscillatorSettings(oscNumber - 1, settings);
     }
 
+    {
+        NoiseSettings noiseSettings;
+        noiseSettings.type = (NoiseType) getChoiceIndex(ParamIDs::noiseType);
+        noiseSettings.level = getFloatParam(ParamIDs::noiseLevel);
+        noiseSettings.muted = getFloatParam(ParamIDs::noiseMute) >= 0.5f;
+        synthEngine.setNoiseSettings(noiseSettings);
+    }
+
     // --- LFO: advance once per block (control-rate), then resolve this
     // block's modulation amount for whichever single target is selected.
     lfo.setWaveform((LfoWaveform) getChoiceIndex(ParamIDs::lfoWaveform));
