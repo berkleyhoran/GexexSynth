@@ -1,0 +1,108 @@
+#include "LookAndFeel.h"
+
+namespace gexex
+{
+    const juce::Identifier GexexLookAndFeel::accentColourPropertyID { "accentColour" };
+
+    GexexLookAndFeel::GexexLookAndFeel()
+    {
+        // A light glass scheme (LookAndFeel_V4's stock schemes are all
+        // dark) -- built from the reference's own aero palette
+        // (gexex/synth.html's --ink/--bg/--card custom properties) rather
+        // than a generic light theme, so every stock widget (ComboBox,
+        // ToggleButton, Label, scrollbars, ...) already matches without
+        // needing per-widget overrides.
+        setColourScheme({
+            juce::Colour(0xFFEAF6FF), // windowBackground
+            juce::Colour(0xE6FFFFFF), // widgetBackground
+            juce::Colour(0xFFFFFFFF), // menuBackground
+            juce::Colour(0x40163049), // outline
+            juce::Colour(0xFF163049), // defaultText
+            juce::Colour(0xFFDCEFFB), // defaultFill
+            juce::Colour(0xFF163049), // highlightedText
+            juce::Colour(0xFFB8E2FA), // highlightedFill
+            juce::Colour(0xFF163049), // menuText
+        });
+
+        setColour(juce::Slider::textBoxTextColourId, inkColour());
+        setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+        setColour(juce::Label::textColourId, inkColour());
+        setColour(juce::ComboBox::outlineColourId, panelBorderColour());
+        setColour(juce::ToggleButton::tickColourId, juce::Colour(0xFFFF3B6E));
+    }
+
+    juce::Colour GexexLookAndFeel::categoryColour(int categoryIndex) noexcept
+    {
+        constexpr float goldenAngle = 0.6180339887f;
+        const float hue = std::fmod((float) categoryIndex * goldenAngle, 1.0f);
+        return juce::Colour::fromHSV(hue, 0.58f, 0.92f, 1.0f);
+    }
+
+    juce::Font GexexLookAndFeel::getLabelFont(juce::Label&)
+    {
+        return juce::FontOptions(13.0f);
+    }
+
+    juce::Font GexexLookAndFeel::getComboBoxFont(juce::ComboBox&)
+    {
+        return juce::FontOptions(13.0f);
+    }
+
+    void GexexLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
+                                             float sliderPos, float rotaryStartAngle, float rotaryEndAngle,
+                                             juce::Slider& slider)
+    {
+        const auto bounds = juce::Rectangle<float>((float) x, (float) y, (float) width, (float) height).reduced(3.0f);
+        const auto centre = bounds.getCentre();
+        const auto radius = juce::jmin(bounds.getWidth(), bounds.getHeight()) * 0.5f;
+        const auto knobRadius = radius * 0.66f;
+        const auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+
+        const auto accent = juce::Colour((juce::uint32) (int) slider.getProperties().getWithDefault(
+            accentColourPropertyID, (int) juce::Colours::grey.getARGB()));
+
+        // Drop shadow -- the "sitting on glass" depth cue.
+        g.setColour(juce::Colours::black.withAlpha(0.16f));
+        g.fillEllipse(centre.x - knobRadius, centre.y - knobRadius + 2.5f, knobRadius * 2.0f, knobRadius * 2.0f);
+
+        // Value arc: dim track for the full range, bright fill up to the
+        // current value.
+        juce::Path track;
+        track.addCentredArc(centre.x, centre.y, radius, radius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
+        g.setColour(GexexLookAndFeel::inkColour().withAlpha(0.16f));
+        g.strokePath(track,
+                      juce::PathStrokeType(3.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+        juce::Path fill;
+        fill.addCentredArc(centre.x, centre.y, radius, radius, 0.0f, rotaryStartAngle, angle, true);
+        g.setColour(accent);
+        g.strokePath(fill, juce::PathStrokeType(3.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+        // Glossy plastic knob body.
+        juce::ColourGradient body(accent.brighter(0.55f), centre.x - knobRadius * 0.35f,
+                                    centre.y - knobRadius * 0.4f, accent.darker(0.25f), centre.x,
+                                    centre.y + knobRadius, true);
+        g.setGradientFill(body);
+        g.fillEllipse(centre.x - knobRadius, centre.y - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f);
+
+        g.setColour(accent.darker(0.6f).withAlpha(0.7f));
+        g.drawEllipse(centre.x - knobRadius, centre.y - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.2f);
+
+        // Specular highlight.
+        juce::Path highlight;
+        highlight.addEllipse(centre.x - knobRadius * 0.55f, centre.y - knobRadius * 0.78f, knobRadius * 0.85f,
+                              knobRadius * 0.5f);
+        g.setColour(juce::Colours::white.withAlpha(0.4f));
+        g.fillPath(highlight);
+
+        // Pointer.
+        juce::Path pointer;
+        const float pointerLength = knobRadius * 0.62f;
+        const float pointerThickness = 2.4f;
+        pointer.addRoundedRectangle(-pointerThickness * 0.5f, -knobRadius + 3.0f, pointerThickness, pointerLength,
+                                     pointerThickness * 0.5f);
+        pointer.applyTransform(juce::AffineTransform::rotation(angle).translated(centre));
+        g.setColour(juce::Colours::white);
+        g.fillPath(pointer);
+    }
+}

@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "PluginEditor.h"
 
 GexexSynthAudioProcessor::GexexSynthAudioProcessor()
     : AudioProcessor(BusesProperties()
@@ -105,6 +106,8 @@ void GexexSynthAudioProcessor::updateEngineParameters(int blockNumSamples) noexc
 
     float resonance = getFloatParam(ParamIDs::filterResonance) + (isTarget(ModTarget::FilterResonance) ? mod : 0.0f);
     synthEngine.setFilterResonance(juce::jlimit(0.1f, 20.0f, resonance));
+    synthEngine.setFilterType((juce::dsp::StateVariableTPTFilterType) getChoiceIndex(ParamIDs::filterType));
+    synthEngine.setFilterVelocitySensitivity(getFloatParam(ParamIDs::filterVelSens));
 
     synthEngine.setEnvelopeParameters({ getFloatParam(ParamIDs::envAttack), getFloatParam(ParamIDs::envDecay),
                                          getFloatParam(ParamIDs::envSustain), getFloatParam(ParamIDs::envRelease) });
@@ -190,6 +193,7 @@ void GexexSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     buffer.clear();
 
     updateEngineParameters(buffer.getNumSamples());
+    keyboardState.processNextMidiBuffer(midi, 0, buffer.getNumSamples(), true);
 
     int samplePos = 0;
     for (const auto metadata : midi)
@@ -203,11 +207,7 @@ void GexexSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
 juce::AudioProcessorEditor* GexexSynthAudioProcessor::createEditor()
 {
-    // Placeholder editor: auto-builds a slider/combo/toggle per APVTS
-    // parameter, so every knob Phase 3 adds is immediately playable/
-    // automatable without hand-building a GUI for it. Phase 4 replaces
-    // this with the real "fruity aero" ModuleRack + custom LookAndFeel.
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new GexexSynthAudioProcessorEditor(*this);
 }
 
 void GexexSynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData)

@@ -59,7 +59,21 @@ namespace gexex
             fmAmount[(size_t) modulatorIndex] = amount;
         }
 
-        void setFilterCutoffHz(float cutoffHz) noexcept { filter.setCutoffFrequency(cutoffHz); }
+        // Base cutoff (the knob value) and velocity->cutoff sensitivity
+        // combine into the filter's actual cutoff here, per-voice, since
+        // each voice's velocity differs -- the block-level cutoff pushed
+        // in from PluginProcessor is the same for every voice, but the
+        // *effective* cutoff after velocity scaling isn't.
+        void setFilterCutoffHz(float cutoffHz) noexcept
+        {
+            baseCutoffHz = cutoffHz;
+            updateFilterCutoff();
+        }
+        void setFilterVelocitySensitivity(float sensitivity) noexcept
+        {
+            velocitySensitivity = sensitivity;
+            updateFilterCutoff();
+        }
         void setFilterResonance(float resonance) noexcept { filter.setResonance(resonance); }
         void setFilterType(juce::dsp::StateVariableTPTFilterType type) noexcept { filter.setType(type); }
         void setEnvelopeParameters(const juce::ADSR::Parameters& params) noexcept { envelope.setParameters(params); }
@@ -93,6 +107,7 @@ namespace gexex
         void startNote(int midiNoteNumber, float velocity) noexcept
         {
             velocityLevel = velocity;
+            updateFilterCutoff();
             const float target = (float) midiNoteNumber;
             if (hasSoundedBefore)
                 glideSmoother.setTargetValue(target);
@@ -113,6 +128,7 @@ namespace gexex
         void glideToNote(int midiNoteNumber, float velocity) noexcept
         {
             velocityLevel = velocity;
+            updateFilterCutoff();
             glideSmoother.setTargetValue((float) midiNoteNumber);
         }
 
@@ -161,6 +177,15 @@ namespace gexex
         }
 
     private:
+        // velocitySensitivity 0..1 scales up to +-4 octaves of cutoff shift
+        // based on how far this voice's velocity sits below max (velocity
+        // 1.0 = no shift at any sensitivity).
+        void updateFilterCutoff() noexcept
+        {
+            const float mult = std::pow(2.0f, velocitySensitivity * 4.0f * (velocityLevel - 1.0f));
+            filter.setCutoffFrequency(juce::jlimit(20.0f, 20000.0f, baseCutoffHz * mult));
+        }
+
         // Tuned so the 0..1 FM-amount knob covers "no audible FM" up to
         // "clearly inharmonic/bell-like", matching the reference's
         // practical range -- see the build plan's §1.2.
@@ -177,6 +202,8 @@ namespace gexex
         float velocityLevel = 1.0f;
         float lastGlideTimeSeconds = -1.0f;
         float pitchModSemitones = 0.0f;
+        float baseCutoffHz = 2000.0f;
+        float velocitySensitivity = 0.0f;
         double sampleRate = 44100.0;
     };
 }

@@ -12,8 +12,10 @@ namespace gexex
     // same module boundaries -- no point building the grouping twice.
     namespace ParamIDs
     {
+        static constexpr auto filterType = "filterType";
         static constexpr auto filterCutoff = "filterCutoff";
         static constexpr auto filterResonance = "filterResonance";
+        static constexpr auto filterVelSens = "filterVelSens";
         static constexpr auto envAttack = "envAttack";
         static constexpr auto envDecay = "envDecay";
         static constexpr auto envSustain = "envSustain";

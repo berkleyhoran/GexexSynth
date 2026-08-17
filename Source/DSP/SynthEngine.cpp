@@ -34,6 +34,18 @@ namespace gexex
             v.setFilterResonance(resonance);
     }
 
+    void SynthEngine::setFilterType(juce::dsp::StateVariableTPTFilterType type) noexcept
+    {
+        for (auto& v : voices)
+            v.setFilterType(type);
+    }
+
+    void SynthEngine::setFilterVelocitySensitivity(float sensitivity) noexcept
+    {
+        for (auto& v : voices)
+            v.setFilterVelocitySensitivity(sensitivity);
+    }
+
     void SynthEngine::setEnvelopeParameters(const juce::ADSR::Parameters& params) noexcept
     {
         for (auto& v : voices)

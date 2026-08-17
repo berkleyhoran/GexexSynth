@@ -67,11 +67,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout gexex::createParameterLayout
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::fmAmount3, "FM Osc3->Osc1", NormalisableRange<float>(0.0f, 1.0f), 0.0f));
 
+    // Choice item order matches juce::dsp::StateVariableTPTFilterType exactly
+    // (Lowpass, Bandpass, Highpass) so the index casts straight across.
+    params.push_back(std::make_unique<AudioParameterChoice>(
+        ParamIDs::filterType, "Filter Type", StringArray { "Lowpass", "Bandpass", "Highpass" }, 0));
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::filterCutoff, "Filter Cutoff", NormalisableRange<float>(20.0f, 20000.0f, 0.0f, 0.25f), 2000.0f,
         AudioParameterFloatAttributes().withLabel("Hz")));
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::filterResonance, "Filter Resonance", NormalisableRange<float>(0.1f, 20.0f, 0.0f, 0.35f), 0.707f));
+    params.push_back(std::make_unique<AudioParameterFloat>(
+        ParamIDs::filterVelSens, "Filter Vel->Cutoff", NormalisableRange<float>(0.0f, 1.0f), 0.3f));
 
     params.push_back(std::make_unique<AudioParameterFloat>(
         ParamIDs::envAttack, "Attack", NormalisableRange<float>(0.001f, 3.0f, 0.0f, 0.3f), 0.02f,

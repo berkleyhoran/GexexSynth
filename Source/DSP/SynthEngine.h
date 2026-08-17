@@ -31,6 +31,8 @@ namespace gexex
         void setFmAmount(int modulatorIndex, float amount) noexcept;
         void setFilterCutoffHz(float hz) noexcept;
         void setFilterResonance(float resonance) noexcept;
+        void setFilterType(juce::dsp::StateVariableTPTFilterType type) noexcept;
+        void setFilterVelocitySensitivity(float sensitivity) noexcept;
         void setEnvelopeParameters(const juce::ADSR::Parameters& params) noexcept;
         void setGlideTimeSeconds(float seconds) noexcept;
         void setPitchModSemitones(float semitones) noexcept;

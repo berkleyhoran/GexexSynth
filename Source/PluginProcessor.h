@@ -56,6 +56,12 @@ public:
 
     juce::AudioProcessorValueTreeState apvts { *this, nullptr, "PARAMETERS", gexex::createParameterLayout() };
 
+    // Public so PluginEditor can hand it straight to a MidiKeyboardComponent
+    // -- clicks on the on-screen keyboard merge into the real MIDI stream
+    // in processBlock, so they go through exactly the same voice-allocation/
+    // arp path a hardware controller's notes would.
+    juce::MidiKeyboardState keyboardState;
+
 private:
     // Reads the current APVTS values (+ this block's LFO reading) and
     // pushes fully-resolved values into synthEngine/effectsChain -- called

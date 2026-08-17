@@ -63,10 +63,13 @@ juce_generate_juce_header(GexexSynth)
 
 target_sources(GexexSynth PRIVATE
     Source/PluginProcessor.cpp
+    Source/PluginEditor.cpp
     Source/Parameters.cpp
     Source/DSP/Arpeggiator.cpp
     Source/DSP/SynthEngine.cpp
-    Source/DSP/Effects/EffectsChain.cpp)
+    Source/DSP/Effects/EffectsChain.cpp
+    Source/GUI/LookAndFeel.cpp
+    Source/GUI/ModuleRack.cpp)
 
 target_compile_definitions(GexexSynth PUBLIC
     JUCE_WEB_BROWSER=0
