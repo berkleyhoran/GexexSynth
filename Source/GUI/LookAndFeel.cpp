@@ -29,6 +29,34 @@ namespace gexex
         setColour(juce::Label::textColourId, inkColour());
         setColour(juce::ComboBox::outlineColourId, panelBorderColour());
         setColour(juce::ToggleButton::tickColourId, juce::Colour(0xFFFF3B6E));
+
+        // Every knob's numeric readout is a Slider text box, and
+        // LookAndFeel_V4::createSliderTextBox() bakes its colours in as
+        // *explicit* overrides on the Label/TextEditor it creates --
+        // permanently, at the moment the Slider's setTextBoxStyle() is
+        // called (see Knob.h), not re-resolved later. Since Knob objects
+        // are built as part of ModuleRack's member-initializer (before
+        // PluginEditor's constructor body ever reaches its own
+        // setLookAndFeel(&lookAndFeel) call), every one of those text
+        // boxes was baking in stock LookAndFeel_V4's default *dark-scheme*
+        // text colour (near-white) instead of ours -- invisible on this
+        // light aero background. Installing this instance as the JUCE-wide
+        // default right here, in its own constructor, guarantees it's
+        // already active before any child widget can be constructed,
+        // however early that happens. (Clicking into one of those boxes
+        // auto-selects its full text -- JUCE's Slider does that itself --
+        // and *selected* text draws in highlightedTextColourId, a
+        // different id we'd never set, which happens to default to black:
+        // that's the "white normally, black when clicked" split.)
+        juce::LookAndFeel::setDefaultLookAndFeel(this);
+
+        setColour(juce::TextEditor::textColourId, inkColour());
+        setColour(juce::TextEditor::backgroundColourId, juce::Colour(0xFFFFFFFF));
+        setColour(juce::TextEditor::outlineColourId, panelBorderColour());
+        setColour(juce::TextEditor::focusedOutlineColourId, juce::Colour(0xFF2AA9C9));
+        setColour(juce::TextEditor::highlightColourId, juce::Colour(0xFFB8E2FA));
+        setColour(juce::TextEditor::highlightedTextColourId, inkColour());
+        setColour(juce::CaretComponent::caretColourId, inkColour());
     }
 
     juce::Colour GexexLookAndFeel::categoryColour(int categoryIndex) noexcept

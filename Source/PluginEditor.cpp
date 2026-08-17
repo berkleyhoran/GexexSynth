@@ -38,6 +38,15 @@ GexexSynthAudioProcessorEditor::GexexSynthAudioProcessorEditor(GexexSynthAudioPr
 GexexSynthAudioProcessorEditor::~GexexSynthAudioProcessorEditor()
 {
     setLookAndFeel(nullptr);
+
+    // lookAndFeel installs itself as the JUCE-wide default in its own
+    // constructor (see LookAndFeel.cpp) so widgets built during this
+    // editor's own construction bake in the right colours from the
+    // start. If it's still the global default when this editor (and
+    // therefore lookAndFeel) is destroyed, clear that pointer rather than
+    // leaving JUCE holding a reference to a now-dead object.
+    if (&juce::LookAndFeel::getDefaultLookAndFeel() == &lookAndFeel)
+        juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
 }
 
 void GexexSynthAudioProcessorEditor::paint(juce::Graphics&)

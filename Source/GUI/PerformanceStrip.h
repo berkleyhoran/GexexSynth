@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "../ScopeDataSource.h"
 
@@ -26,8 +27,20 @@ namespace gexex
     private:
         void timerCallback() override;
         void drawTiledLayer(juce::Graphics& g, const juce::Image& img, juce::Rectangle<int> area) const;
+        static juce::Path buildTracePath(const float* samples, juce::Rectangle<float> traceArea);
 
         const ScopeDataSource<>& scopeSource;
         juce::Image grassImage;
+
+        // A short trailing history of past frames, captured at a slower
+        // cadence than the 30Hz repaint -- drawn beneath the live trace at
+        // decreasing alpha/hue for a "phosphor comet" effect (ghost copies
+        // of recent motion fading out behind the current line), rather
+        // than a single static stroke.
+        static constexpr int trailLength = 4;
+        static constexpr int captureEveryNTicks = 3; // ~10Hz trail capture off the 30Hz timer
+        std::array<std::array<float, ScopeDataSource<>::size>, trailLength> trailSamples {};
+        int trailWriteIndex = 0;
+        int tickCounter = 0;
     };
 }
