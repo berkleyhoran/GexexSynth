@@ -28,8 +28,44 @@ namespace gexex
         static constexpr auto arpEnabled = "arpEnabled";
         static constexpr auto arpPattern = "arpPattern";
         static constexpr auto arpOctaveRange = "arpOctaveRange";
+        static constexpr auto arpSyncDivision = "arpSyncDivision";
         static constexpr auto arpRateHz = "arpRateHz";
         static constexpr auto arpGate = "arpGate";
+
+        static constexpr auto lfoWaveform = "lfoWaveform";
+        static constexpr auto lfoSyncDivision = "lfoSyncDivision";
+        static constexpr auto lfoRateHz = "lfoRateHz";
+        static constexpr auto lfoDepth = "lfoDepth";
+        static constexpr auto lfoTarget = "lfoTarget";
+
+        static constexpr auto crushBits = "crushBits";
+        static constexpr auto crushDownsample = "crushDownsample";
+        static constexpr auto driveAmount = "driveAmount";
+
+        static constexpr auto delaySyncDivision = "delaySyncDivision";
+        static constexpr auto delayTimeSeconds = "delayTimeSeconds";
+        static constexpr auto delayFeedback = "delayFeedback";
+        static constexpr auto delayMix = "delayMix";
+
+        static constexpr auto reverbSize = "reverbSize";
+        static constexpr auto reverbMix = "reverbMix";
+
+        static constexpr auto chorusRateHz = "chorusRateHz";
+        static constexpr auto chorusDepthMs = "chorusDepthMs";
+        static constexpr auto chorusMix = "chorusMix";
+
+        static constexpr auto pfMode = "pfMode";
+        static constexpr auto pfRateHz = "pfRateHz";
+        static constexpr auto pfDepth = "pfDepth";
+        static constexpr auto pfFeedback = "pfFeedback";
+        static constexpr auto pfMix = "pfMix";
+
+        static constexpr auto saturatorAlgorithm = "saturatorAlgorithm";
+        static constexpr auto saturatorAmount = "saturatorAmount";
+        static constexpr auto saturatorCeiling = "saturatorCeiling";
+
+        static constexpr auto masterVolume = "masterVolume";
+        static constexpr auto masterPan = "masterPan";
 
         // Per-oscillator suffixes -- combine with oscParamID() below so the
         // same 3-oscillator layout isn't hand-typed three times.
@@ -47,9 +83,11 @@ namespace gexex
     // is 1-based (1, 2, 3), matching the reference UI's "Osc 1/2/3" naming.
     juce::String oscParamID(int oscNumber, const juce::String& suffix);
 
-    // Waveform/VoiceMode/ArpPattern choice-parameter item order matches the
-    // gexex::Waveform / gexex::VoiceMode / gexex::ArpPattern enums exactly
-    // (see PolyBlepOscillator.h / SynthEngine.h / Arpeggiator.h) -- callers
-    // read a choice's getIndex() and static_cast it straight to the enum.
+    // Every choice parameter's item order matches its corresponding enum
+    // exactly: Waveform (PolyBlepOscillator.h), VoiceMode (SynthEngine.h),
+    // ArpPattern (Arpeggiator.h), SyncDivision (TempoSync.h), LfoWaveform /
+    // ModTarget (Lfo.h / ModTarget.h), PhaserFlangerMode / SaturatorAlgorithm
+    // (Effects/*.h) -- callers read a choice's getIndex() and static_cast
+    // it straight to the enum.
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 }

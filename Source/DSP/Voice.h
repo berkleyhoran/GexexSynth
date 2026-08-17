@@ -64,6 +64,13 @@ namespace gexex
         void setFilterType(juce::dsp::StateVariableTPTFilterType type) noexcept { filter.setType(type); }
         void setEnvelopeParameters(const juce::ADSR::Parameters& params) noexcept { envelope.setParameters(params); }
 
+        // The LFO's "Pitch (all osc)" target is the one modulation
+        // destination that has to reach the audio-rate note calculation
+        // directly (everything else is resolved once per block, before it
+        // ever reaches Voice -- see PluginProcessor::updateEngineParameters'
+        // comment on that design choice).
+        void setPitchModSemitones(float semitones) noexcept { pitchModSemitones = semitones; }
+
         // SmoothedValue::reset() snaps currentValue to target as a side
         // effect of changing the ramp length (see JUCE's implementation) --
         // called unconditionally every block, that would finish any
@@ -119,7 +126,7 @@ namespace gexex
             if (! envelope.isActive())
                 return 0.0f;
 
-            const float rootNote = glideSmoother.getNextValue();
+            const float rootNote = glideSmoother.getNextValue() + pitchModSemitones;
 
             for (int i = 0; i < 3; ++i)
             {
@@ -169,6 +176,7 @@ namespace gexex
         bool hasSoundedBefore = false;
         float velocityLevel = 1.0f;
         float lastGlideTimeSeconds = -1.0f;
+        float pitchModSemitones = 0.0f;
         double sampleRate = 44100.0;
     };
 }

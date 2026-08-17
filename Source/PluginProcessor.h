@@ -3,11 +3,28 @@
 #include <JuceHeader.h>
 #include "Parameters.h"
 #include "DSP/SynthEngine.h"
+#include "DSP/Lfo.h"
+#include "DSP/ModMatrix.h"
+#include "DSP/Effects/EffectsChain.h"
 
-// Phase 2: the full 3-oscillator/FM engine with a real poly voice pool,
-// mono/poly + legato/glide, and the arpeggiator, still driven straight from
-// MIDI with JUCE's built-in generic editor (no effects chain yet -- that's
-// Phase 3 -- and no custom GUI yet -- that's Phase 4).
+// Phase 3: the full signal path -- SynthEngine (Phase 2's oscillators/FM/
+// voices/arp) feeding EffectsChain (bitcrush/drive/delay/reverb/chorus/
+// phaser-flanger/saturator/master), modulated by one routable LFO. Still
+// JUCE's built-in generic editor (Phase 4 replaces it with the real
+// "fruity aero" GUI).
+//
+// Architecture note: the build plan sketched SynthEngine as owning the LFO
+// and effects chain too ("voice pool + arp + LFO + effects chain"). In
+// practice, every LFO modulation target except Pitch is resolved into an
+// already-computed *final* parameter value right here in
+// updateEngineParameters() -- e.g. the LFO's contribution to filter cutoff
+// is added to the cutoff value before it's ever passed to synthEngine --
+// rather than threading a live (target, amount) pair down into SynthEngine/
+// EffectsChain's internals. That keeps their APIs plain setters-for-
+// resolved-values (same shape as Phase 1/2) instead of needing every
+// consumer to understand ModTarget. Pitch is the one exception: it has to
+// reach the audio-rate note calculation inside Voice directly, so it gets
+// its own dedicated setPitchModSemitones() plumbed through SynthEngine.
 class GexexSynthAudioProcessor : public juce::AudioProcessor
 {
 public:
@@ -40,17 +57,22 @@ public:
     juce::AudioProcessorValueTreeState apvts { *this, nullptr, "PARAMETERS", gexex::createParameterLayout() };
 
 private:
-    // Reads the current APVTS values and pushes them into synthEngine --
-    // called once per block rather than per-sample (control-rate is plenty
-    // for these; the audio-rate stuff -- oscillator phase, filter
-    // coefficients, envelope -- happens inside Voice::renderNextSample).
-    void updateEngineParameters() noexcept;
+    // Reads the current APVTS values (+ this block's LFO reading) and
+    // pushes fully-resolved values into synthEngine/effectsChain -- called
+    // once per block, not per-sample (see the class comment above).
+    void updateEngineParameters(int blockNumSamples) noexcept;
     void renderVoiceBlock(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept;
+    double getHostBpm() const noexcept;
 
     float getFloatParam(const char* paramID) const noexcept { return apvts.getRawParameterValue(paramID)->load(); }
     int getChoiceIndex(const char* paramID) const noexcept { return (int) getFloatParam(paramID); }
 
     gexex::SynthEngine synthEngine;
+    gexex::Lfo lfo;
+    gexex::EffectsChain effectsChain;
+
+    juce::AudioBuffer<float> monoScratch;
+    float ampModMultiplier = 1.0f; // resolved once per block in updateEngineParameters, applied per-sample below
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GexexSynthAudioProcessor)
 };

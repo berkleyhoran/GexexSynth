@@ -33,6 +33,7 @@ namespace gexex
         void setFilterResonance(float resonance) noexcept;
         void setEnvelopeParameters(const juce::ADSR::Parameters& params) noexcept;
         void setGlideTimeSeconds(float seconds) noexcept;
+        void setPitchModSemitones(float semitones) noexcept;
 
         void setArpEnabled(bool enabled) noexcept { arp.setEnabled(enabled); }
         void setArpPattern(ArpPattern pattern) noexcept { arp.setPattern(pattern); }

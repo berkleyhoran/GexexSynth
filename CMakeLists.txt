@@ -65,7 +65,8 @@ target_sources(GexexSynth PRIVATE
     Source/PluginProcessor.cpp
     Source/Parameters.cpp
     Source/DSP/Arpeggiator.cpp
-    Source/DSP/SynthEngine.cpp)
+    Source/DSP/SynthEngine.cpp
+    Source/DSP/Effects/EffectsChain.cpp)
 
 target_compile_definitions(GexexSynth PUBLIC
     JUCE_WEB_BROWSER=0

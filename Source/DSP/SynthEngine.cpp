@@ -46,6 +46,12 @@ namespace gexex
             v.setGlideTimeSeconds(seconds);
     }
 
+    void SynthEngine::setPitchModSemitones(float semitones) noexcept
+    {
+        for (auto& v : voices)
+            v.setPitchModSemitones(semitones);
+    }
+
     float SynthEngine::getStoredVelocity(int midiNote) const noexcept
     {
         return noteVelocity[(size_t) juce::jlimit(0, 127, midiNote)];
