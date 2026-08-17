@@ -1,5 +1,4 @@
 #include "PluginProcessor.h"
-#include "PluginEditor.h"
 
 GexexSynthAudioProcessor::GexexSynthAudioProcessor()
     : AudioProcessor(BusesProperties()
@@ -18,32 +17,93 @@ bool GexexSynthAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts
     return layouts.getMainInputChannelSet() == juce::AudioChannelSet::disabled();
 }
 
-void GexexSynthAudioProcessor::prepareToPlay(double, int)
+void GexexSynthAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    // Nothing to prepare yet -- Phase 1 adds the voice pool/filter/envelope
-    // here.
+    const juce::dsp::ProcessSpec spec { sampleRate,
+                                         (juce::uint32) samplesPerBlock,
+                                         (juce::uint32) getTotalNumOutputChannels() };
+    voice.prepare(spec);
 }
 
-void GexexSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+void GexexSynthAudioProcessor::renderVoiceBlock(juce::AudioBuffer<float>& buffer, int startSample,
+                                                 int numSamples) noexcept
+{
+    if (numSamples <= 0)
+        return;
+
+    const auto numChannels = buffer.getNumChannels();
+    for (int i = 0; i < numSamples; ++i)
+    {
+        const float sample = voice.renderNextSample();
+        for (int channel = 0; channel < numChannels; ++channel)
+            buffer.setSample(channel, startSample + i, sample);
+    }
+}
+
+void GexexSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
-    // Silent instrument for now: just make sure the output buffer is
-    // definitely quiet (some hosts hand back non-zeroed scratch buffers).
     buffer.clear();
+
+    voice.setFilterCutoffHz(apvts.getRawParameterValue(gexex::ParamIDs::filterCutoff)->load());
+    voice.setFilterResonance(apvts.getRawParameterValue(gexex::ParamIDs::filterResonance)->load());
+    voice.setEnvelopeParameters({ apvts.getRawParameterValue(gexex::ParamIDs::envAttack)->load(),
+                                   apvts.getRawParameterValue(gexex::ParamIDs::envDecay)->load(),
+                                   apvts.getRawParameterValue(gexex::ParamIDs::envSustain)->load(),
+                                   apvts.getRawParameterValue(gexex::ParamIDs::envRelease)->load() });
+
+    int samplePos = 0;
+
+    for (const auto metadata : midi)
+    {
+        renderVoiceBlock(buffer, samplePos, metadata.samplePosition - samplePos);
+        samplePos = metadata.samplePosition;
+
+        const auto message = metadata.getMessage();
+        if (message.isNoteOn())
+        {
+            currentNote = message.getNoteNumber();
+            voice.setFrequencyFromMidiNote(currentNote);
+            voice.noteOn();
+        }
+        else if (message.isNoteOff())
+        {
+            if (message.getNoteNumber() == currentNote)
+            {
+                voice.noteOff();
+                currentNote = -1;
+            }
+        }
+        else if (message.isAllNotesOff() || message.isAllSoundOff())
+        {
+            voice.noteOff();
+            currentNote = -1;
+        }
+    }
+
+    renderVoiceBlock(buffer, samplePos, buffer.getNumSamples() - samplePos);
 }
 
 juce::AudioProcessorEditor* GexexSynthAudioProcessor::createEditor()
 {
-    return new GexexSynthAudioProcessorEditor(*this);
+    // Placeholder editor: auto-builds a slider per APVTS parameter, so
+    // every knob Phase 1 adds is immediately playable/automatable without
+    // hand-building a GUI for it. Phase 4 replaces this with the real
+    // "fruity aero" ModuleRack + custom LookAndFeel.
+    return new juce::GenericAudioProcessorEditor(*this);
 }
 
-void GexexSynthAudioProcessor::getStateInformation(juce::MemoryBlock&)
+void GexexSynthAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    // No parameters yet -- Phase 1+ round-trips an APVTS state here.
+    if (auto state = apvts.copyState(); auto xml = state.createXml())
+        copyXmlToBinary(*xml, destData);
 }
 
-void GexexSynthAudioProcessor::setStateInformation(const void*, int)
+void GexexSynthAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
+    if (auto xml = getXmlFromBinary(data, sizeInBytes))
+        if (xml->hasTagName(apvts.state.getType()))
+            apvts.replaceState(juce::ValueTree::fromXml(*xml));
 }
 
 // This creates new instances of the plugin.

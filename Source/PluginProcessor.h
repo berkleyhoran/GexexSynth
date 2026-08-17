@@ -1,12 +1,15 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Parameters.h"
+#include "DSP/Voice.h"
 
-// Phase 0 scaffolding: a silent, GUI-less instrument that just needs to
-// build and load in a host/Standalone as proof the CMake/JUCE plumbing is
-// wired up correctly. No DSP yet -- see the plan doc for what Phase 1+
-// adds (PolyBLEP oscillator, TPT filter, ADSR, voice pool, effects chain,
-// APVTS parameters, custom GUI, presets, installer).
+// Phase 1: a hard-coded mono voice (PolyBLEP saw -> TPT filter -> ADSR)
+// driven straight from MIDI, with a minimal set of APVTS parameters
+// (cutoff, resonance, ADSR) and JUCE's built-in generic editor -- proves
+// the core DSP path sounds right before Phase 2 adds the full oscillator
+// set, FM, voice pool, and arpeggiator, and Phase 4 replaces the editor
+// with the real "fruity aero" GUI.
 class GexexSynthAudioProcessor : public juce::AudioProcessor
 {
 public:
@@ -36,6 +39,13 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
+    juce::AudioProcessorValueTreeState apvts { *this, nullptr, "PARAMETERS", gexex::createParameterLayout() };
+
 private:
+    void renderVoiceBlock(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) noexcept;
+
+    gexex::Voice voice;
+    int currentNote = -1;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GexexSynthAudioProcessor)
 };

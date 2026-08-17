@@ -63,7 +63,7 @@ juce_generate_juce_header(GexexSynth)
 
 target_sources(GexexSynth PRIVATE
     Source/PluginProcessor.cpp
-    Source/PluginEditor.cpp)
+    Source/Parameters.cpp)
 
 target_compile_definitions(GexexSynth PUBLIC
     JUCE_WEB_BROWSER=0
