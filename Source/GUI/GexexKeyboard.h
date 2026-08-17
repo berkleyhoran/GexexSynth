@@ -20,6 +20,16 @@ namespace gexex
             // supported way to theme the background behind/around the
             // keys without overriding that method.
             setColour(juce::MidiKeyboardComponent::whiteNoteColourId, juce::Colour(0xfff8fbfd));
+
+            // MidiKeyboardComponent has a built-in "computer keyboard as a
+            // virtual piano" feature (QWERTY row -> notes) whenever it has
+            // keyboard focus -- JUCE's own class docs note
+            // setWantsKeyboardFocus(false) is the supported way to turn it
+            // off. A real MIDI controller/DAW note input is what this
+            // plugin actually expects; typing on the computer keyboard
+            // isn't an interaction we want competing with the host's own
+            // keyboard shortcuts once this is loaded as a VST3.
+            setWantsKeyboardFocus(false);
         }
 
         void drawWhiteNote(int midiNoteNumber, juce::Graphics& g, juce::Rectangle<float> area, bool isDown,

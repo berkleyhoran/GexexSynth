@@ -19,6 +19,15 @@ namespace gexex
         {
             slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
             slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 64, 16);
+
+            // A Slider intercepts the mouse wheel to nudge its own value
+            // by default -- with ~70 knobs packed into a scrolling rack,
+            // that means the page silently stops scrolling the instant the
+            // cursor happens to be over any knob, instead of just passing
+            // the wheel event up to the enclosing Viewport like everywhere
+            // else in the rack does. Disabling it here is what makes wheel
+            // scrolling consistent across the whole window.
+            slider.setScrollWheelEnabled(false);
             slider.getProperties().set(GexexLookAndFeel::accentColourPropertyID, (int) accentColour.getARGB());
             addAndMakeVisible(slider);
 
