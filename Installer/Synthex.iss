@@ -1,39 +1,52 @@
-; Inno Setup script for Gexex Synth -- "fruity aero" (sky-blue/glass) wizard,
+; Inno Setup script for Synthex -- "fruity aero" (sky-blue/glass) wizard,
 ; adapted from Kaleidosonic's own installer script (same structure, new
 ; palette/branding/paths -- see the comments below for what changed and why).
-; Build with: ISCC.exe Installer\GexexSynth.iss   (after a Release build)
-; Produces Installer\Output\GexexSynthSetup.exe -- a single installer
+; Build with: ISCC.exe Installer\Synthex.iss   (after a Release build)
+; Produces Installer\Output\SynthexSetup.exe -- a single installer
 ; anyone can run: it puts the VST3 where every DAW looks for it
 ; (C:\Program Files\Common Files\VST3) and optionally installs the
 ; Standalone app with a Start Menu shortcut.
 
-#define AppName "Gexex Synth"
-; Overridable via `ISCC.exe /DAppVersion=1.0.0 GexexSynth.iss` -- CI passes
+#define AppName "Synthex"
+; Overridable via `ISCC.exe /DAppVersion=1.0.1 Synthex.iss` -- CI passes
 ; the git tag's version through this way instead of editing the file.
 ; Local/manual builds (no /D flag) just get this default.
 #ifndef AppVersion
-  #define AppVersion "0.1.0"
+  #define AppVersion "1.0.0"
 #endif
-; The CMake *target* is GexexSynth (no space, hence the artefacts folder
-; name below), but the actual product files JUCE emits use PRODUCT_NAME
-; "Gexex Synth" (with a space) -- both are correct, they're just two
-; different names for two different things.
+; The CMake *target*/repo are still named GexexSynth (hence the artefacts
+; folder name below) -- only the product's own display name (PRODUCT_NAME
+; in CMakeLists.txt, and therefore every built file's actual name) changed
+; to Synthex. Renaming the CMake target/repo too would be a much bigger,
+; riskier churn for zero user-visible benefit (nobody but this build
+; script ever sees those internal names), so this is deliberately just a
+; product-name rename, not a project-wide one.
 #define BuildDir "..\build\GexexSynth_artefacts\Release"
 
 [Setup]
-AppId={{55FF9286-DE8F-4374-970B-DF4EF31DDDC6}
+; A fresh AppId (not reused from the old GexexSynth.iss) -- this is a
+; product *rename*, and Inno uses AppId (not AppName) to decide whether a
+; new installer is "the same product, an update" or something new. Reusing
+; the old AppId while DefaultDirName now resolves to a different path
+; (tied to the new AppName) risks Inno trying to reconcile an existing
+; install record against a directory it never actually installed to.
+; Treating this as a fresh install identity and uninstalling the old
+; "Gexex Synth" install explicitly (done once, by hand, alongside this
+; rename) is the clean way through that -- see the release notes.
+AppId={{821D4A3F-8EBF-4A10-A604-29221CF53997}
 AppName={#AppName}
 AppVersion={#AppVersion}
 ; The publisher/manufacturer field -- this is a gexex-family product, so
 ; it publishes under the gexex name throughout (matching COMPANY_NAME in
 ; CMakeLists.txt), not a personal name, same convention as every other
 ; author-facing field in this project (see the build plan's "Branding:
-; gexex everywhere" table). Unlike Kaleidosonic, which publishes under
-; its own product name since it's a standalone release.
+; gexex everywhere" table) -- unaffected by the product's own name
+; changing from "Gexex Synth" to "Synthex". Unlike Kaleidosonic, which
+; publishes under its own product name since it's a standalone release.
 AppPublisher=gexex
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
-OutputBaseFilename=GexexSynthSetup
+OutputBaseFilename=SynthexSetup
 OutputDir=Output
 Compression=lzma2
 SolidCompression=yes
@@ -58,17 +71,17 @@ Name: "standalone"; Description: "Standalone app"; Types: full custom
 
 [Files]
 ; The .vst3 is a bundle folder -- copy it whole into the system VST3 dir.
-Source: "{#BuildDir}\VST3\Gexex Synth.vst3\*"; DestDir: "{commoncf64}\VST3\Gexex Synth.vst3"; \
+Source: "{#BuildDir}\VST3\Synthex.vst3\*"; DestDir: "{commoncf64}\VST3\Synthex.vst3"; \
     Components: vst3; Flags: recursesubdirs ignoreversion
-Source: "{#BuildDir}\Standalone\Gexex Synth.exe"; DestDir: "{app}"; \
+Source: "{#BuildDir}\Standalone\Synthex.exe"; DestDir: "{app}"; \
     Components: standalone; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\Gexex Synth.exe"; Components: standalone
+Name: "{group}\{#AppName}"; Filename: "{app}\Synthex.exe"; Components: standalone
 Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{app}\Gexex Synth.exe"; Description: "Launch {#AppName}"; \
+Filename: "{app}\Synthex.exe"; Description: "Launch {#AppName}"; \
     Components: standalone; Flags: nowait postinstall skipifsilent
 
 [Messages]

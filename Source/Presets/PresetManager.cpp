@@ -880,7 +880,7 @@ namespace gexex
     {
         auto dir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
                        .getChildFile("gexex")
-                       .getChildFile("Gexex Synth")
+                       .getChildFile("Synthex")
                        .getChildFile("Presets");
         dir.createDirectory();
         return dir;

@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.22)
 # this file -- see .github/workflows/release.yml. Local/manual builds that
 # don't pass it just get this default. (Same pattern as Kaleidosonic's
 # KALEIDOSONIC_VERSION.)
-set(GEXEXSYNTH_VERSION "0.1.0" CACHE STRING "Gexex Synth version (plugin + installers)")
+set(GEXEXSYNTH_VERSION "0.1.0" CACHE STRING "Synthex version (plugin + installers)")
 
 project(GexexSynth VERSION ${GEXEXSYNTH_VERSION})
 
@@ -60,7 +60,7 @@ juce_add_plugin(GexexSynth
     PLUGIN_MANUFACTURER_CODE Gxex
     PLUGIN_CODE Gsy1
     FORMATS ${GEXEXSYNTH_FORMATS}
-    PRODUCT_NAME "Gexex Synth"
+    PRODUCT_NAME "Synthex"
     VST3_CATEGORIES "Instrument" "Synth"
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE

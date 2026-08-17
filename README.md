@@ -1,7 +1,7 @@
-# Gexex Synth
+# Synthex
 
-A 3-oscillator, FM-capable, DAW-automatable **VST3** synthesizer (also AU on
-macOS, and Standalone) — the instrument at the heart of gexex's
+A gexex synthesizer: a 3-oscillator, FM-capable, DAW-automatable **VST3**
+(also AU on macOS, and Standalone) — the instrument at the heart of gexex's
 [browser synth toy](https://github.com/berkleyhoran/gexex), rebuilt native
 and CPU-optimized, without the sequencer/drum-machine/beat-mangling features
 a real DAW already covers.
@@ -64,10 +64,10 @@ tagged releases build Windows/macOS/Linux installers.
 Requires [Inno Setup 6](https://jrsoftware.org/isinfo.php):
 
 ```
-ISCC.exe Installer\GexexSynth.iss
+ISCC.exe Installer\Synthex.iss
 ```
 
-Produces `Installer\Output\GexexSynthSetup.exe`.
+Produces `Installer\Output\SynthexSetup.exe`.
 
 ## Releasing a new version
 
