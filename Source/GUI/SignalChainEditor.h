@@ -11,14 +11,18 @@ namespace gexex
     // Replaces what used to be 7 stacked ComboBox rows (functionally
     // fine, but reads as "a form to fill in" rather than a signal chain)
     // with an actual drag-to-reorder list: each row is one insert slot,
-    // tinted by whichever effect currently occupies it (categoryColour
-    // keyed to the effect's own choice index, so e.g. "Chorus" is always
-    // the same hue no matter which slot it's in). Dragging a row past a
-    // neighbour swaps them immediately (a "snap between slots" reorder,
-    // not a smoothly-floating ghost -- simpler and just as clear).
-    // Clicking a row without dragging opens a small popup to reassign
-    // *which* effect that slot holds -- so the picker still exists, it's
-    // just not permanently on-screen as a dropdown.
+    // tinted by whichever effect currently occupies it -- using the exact
+    // same colour as that effect's own ModuleCard elsewhere in the rack
+    // (passed in by ModuleRack, which is the only place that already
+    // knows each card's actual category-index colour; deriving a colour
+    // independently here via categoryColour(effectIndex) drifted out of
+    // sync with the cards' real colours the moment the effect-card list
+    // stopped matching FxSlotEffect's enum order 1:1, which it does not).
+    // Dragging a row past a neighbour swaps them immediately (a "snap
+    // between slots" reorder, not a smoothly-floating ghost -- simpler
+    // and just as clear). Clicking a row without dragging opens a small
+    // popup to reassign *which* effect that slot holds -- so the picker
+    // still exists, it's just not permanently on-screen as a dropdown.
     //
     // Backed by the same 7 fxSlot0..6 AudioParameterChoice params
     // EffectsChain always used -- this is a different *editor* for that
@@ -27,7 +31,10 @@ namespace gexex
     class SignalChainEditor : public juce::Component, public juce::SettableTooltipClient, private juce::Timer
     {
     public:
-        explicit SignalChainEditor(juce::AudioProcessorValueTreeState& apvtsToUse) : apvts(apvtsToUse)
+        // effectColoursIn is indexed by gexex::FxSlotEffect (0=Empty
+        // unused, 1=Drive..7=MultibandCompressor) -- see EffectsChain.h.
+        SignalChainEditor(juce::AudioProcessorValueTreeState& apvtsToUse, std::array<juce::Colour, 8> effectColoursIn)
+            : apvts(apvtsToUse), effectColours(effectColoursIn)
         {
             for (int i = 0; i < numFxSlots; ++i)
                 slotParams[(size_t) i] = dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter(fxSlotParamID(i)));
@@ -159,7 +166,7 @@ namespace gexex
             const bool isEmpty = effectIndex == 0; // choice index 0 == FxSlotEffect::Empty
 
             auto tint = isEmpty ? juce::Colours::white.withAlpha(0.4f)
-                                 : GexexLookAndFeel::categoryColour(effectIndex).withAlpha(isBeingDragged ? 0.95f : 0.75f);
+                                 : effectColours[(size_t) effectIndex].withAlpha(isBeingDragged ? 0.95f : 0.75f);
             g.setColour(tint);
             g.fillRoundedRectangle(rowBounds, 5.0f);
 
@@ -202,6 +209,7 @@ namespace gexex
 
         juce::AudioProcessorValueTreeState& apvts;
         std::array<juce::AudioParameterChoice*, (size_t) numFxSlots> slotParams {};
+        std::array<juce::Colour, 8> effectColours;
         juce::StringArray choices;
         std::array<int, (size_t) numFxSlots> rowValues {};
 

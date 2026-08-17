@@ -1,6 +1,7 @@
 #include "ModuleRack.h"
 #include "LookAndFeel.h"
 #include "../Parameters.h"
+#include <array>
 
 namespace gexex
 {
@@ -145,25 +146,27 @@ namespace gexex
         // ============================================================
         addSection("Effects", GexexLookAndFeel::categoryColour(category));
 
-        {
-            // The insert chain's execution order/inclusion -- 7 slots
-            // (Empty or one of the serial effects below), backed by the
-            // same fxSlot0..6 params as always, but edited as an actual
-            // drag-to-reorder list instead of 7 stacked dropdowns (see
-            // SignalChainEditor.h). Delay/Reverb aren't here -- they're
-            // parallel sends, not inserts, and stay at their own fixed
-            // point in the signal flow (see EffectsChain.h's class comment).
-            auto& card = addCard("Signal Chain", category++);
-            signalChainEditor = std::make_unique<SignalChainEditor>(apvts);
-            card.addCustomComponent(*signalChainEditor, numFxSlots * 26);
-        }
+        // Each serial effect's colour is captured as its card is built, so
+        // SignalChainEditor's rows can be tinted with the *exact* same
+        // colour as that effect's own card below -- rather than deriving
+        // a colour independently (which drifted out of sync with the
+        // cards' actual sequential category-index colouring the moment
+        // this card list stopped matching FxSlotEffect's enum order 1:1).
+        // Index matches gexex::FxSlotEffect (0=Empty unused, 1=Drive..
+        // 7=MultibandCompressor).
+        std::array<juce::Colour, 8> fxEffectColours;
+        fxEffectColours[0] = juce::Colours::grey; // Empty -- SignalChainEditor dims these itself either way
 
         {
-            auto& card = addCard("Drive", category++);
+            auto& card = addCard("Drive", category);
+            fxEffectColours[1] = GexexLookAndFeel::categoryColour(category);
+            ++category;
             card.addKnob(apvts, ParamIDs::driveAmount, "Amount");
         }
         {
-            auto& card = addCard("Bitcrush", category++);
+            auto& card = addCard("Bitcrush", category);
+            fxEffectColours[2] = GexexLookAndFeel::categoryColour(category);
+            ++category;
             card.addKnob(apvts, ParamIDs::crushBits, "Depth");
             card.addKnob(apvts, ParamIDs::crushDownsample, "Downsmp");
         }
@@ -188,13 +191,17 @@ namespace gexex
             card.addKnob(apvts, ParamIDs::reverbMix, "Mix");
         }
         {
-            auto& card = addCard("Chorus", category++);
+            auto& card = addCard("Chorus", category);
+            fxEffectColours[3] = GexexLookAndFeel::categoryColour(category);
+            ++category;
             card.addKnob(apvts, ParamIDs::chorusRateHz, "Rate");
             card.addKnob(apvts, ParamIDs::chorusDepthMs, "Depth");
             card.addKnob(apvts, ParamIDs::chorusMix, "Mix");
         }
         {
-            auto& card = addCard("Phaser / Flanger", category++);
+            auto& card = addCard("Phaser / Flanger", category);
+            fxEffectColours[4] = GexexLookAndFeel::categoryColour(category);
+            ++category;
             card.addCombo(apvts, ParamIDs::pfMode, "Mode");
             card.addKnob(apvts, ParamIDs::pfRateHz, "Rate");
             card.addKnob(apvts, ParamIDs::pfDepth, "Depth");
@@ -202,20 +209,26 @@ namespace gexex
             card.addKnob(apvts, ParamIDs::pfMix, "Mix");
         }
         {
-            auto& card = addCard("Saturator", category++);
+            auto& card = addCard("Saturator", category);
+            fxEffectColours[5] = GexexLookAndFeel::categoryColour(category);
+            ++category;
             card.addCombo(apvts, ParamIDs::saturatorAlgorithm, "Algorithm");
             card.addKnob(apvts, ParamIDs::saturatorAmount, "Amount");
             card.addKnob(apvts, ParamIDs::saturatorCeiling, "Ceiling");
         }
 
         {
-            auto& card = addCard("Frequency Shifter", category++);
+            auto& card = addCard("Frequency Shifter", category);
+            fxEffectColours[6] = GexexLookAndFeel::categoryColour(category);
+            ++category;
             card.addKnob(apvts, ParamIDs::freqShiftHz, "Shift");
             card.addKnob(apvts, ParamIDs::freqShiftMix, "Mix");
         }
 
         {
-            auto& card = addCard("Multiband Comp", category++);
+            auto& card = addCard("Multiband Comp", category);
+            fxEffectColours[7] = GexexLookAndFeel::categoryColour(category);
+            ++category;
             card.addKnob(apvts, ParamIDs::mbCrossoverLow, "X-Low");
             card.addKnob(apvts, ParamIDs::mbCrossoverHigh, "X-High");
             card.addKnob(apvts, ParamIDs::mbAmount, "Amount");
@@ -223,6 +236,15 @@ namespace gexex
             card.addKnob(apvts, ParamIDs::mbMidGain, "Mid");
             card.addKnob(apvts, ParamIDs::mbHighGain, "High");
             card.addKnob(apvts, ParamIDs::mbMix, "Mix");
+        }
+
+        {
+            // Built last in the Effects section (after every effect card
+            // above it) so fxEffectColours is fully populated by the time
+            // it's constructed -- see the comment above.
+            auto& card = addCard("Signal Chain", category++);
+            signalChainEditor = std::make_unique<SignalChainEditor>(apvts, fxEffectColours);
+            card.addCustomComponent(*signalChainEditor, numFxSlots * 26);
         }
 
         // ============================================================
